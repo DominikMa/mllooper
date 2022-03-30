@@ -104,7 +104,7 @@ class RandomClassDataset(PartitionedDataset):
         previous_random_state = np.random.get_state()
         np.random.seed(seed)
         data = np.random.uniform(low=-1, high=1, size=[nr_samples, *nr_features]).astype(np.float32)
-        labels = np.random.randint(low=0, high=nr_classes-1, size=nr_samples)
+        labels = np.random.randint(low=0, high=nr_classes, size=nr_samples)
         np.random.set_state(previous_random_state)
 
         previous_random_state = random.getstate()
