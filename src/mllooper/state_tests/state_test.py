@@ -2,8 +2,9 @@ import logging
 from abc import ABC
 from typing import Optional
 
-from baselooper import State
 from yaloader import YAMLBaseConfig
+
+from mllooper import State
 
 
 class StateTest(ABC):

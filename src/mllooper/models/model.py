@@ -4,9 +4,9 @@ from pathlib import Path
 from typing import Any, Dict, Optional, List
 
 import torch
-from baselooper import SeededModule, State, SeededModuleConfig
 from torch import nn
 
+from mllooper import SeededModule, State, SeededModuleConfig
 from mllooper.data import DatasetState
 
 

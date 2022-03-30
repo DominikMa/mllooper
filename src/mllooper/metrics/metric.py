@@ -5,8 +5,8 @@ from datetime import datetime
 from typing import Optional, Any, Dict, Literal, List
 
 import torch
-from baselooper import Module, State, ModuleConfig, LooperState
 
+from mllooper import Module, State, ModuleConfig, LooperState
 from mllooper.data import DatasetState
 from mllooper.logging.messages import ScalarLogMessage
 

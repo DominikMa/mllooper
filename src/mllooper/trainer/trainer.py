@@ -2,10 +2,10 @@ from abc import ABC
 from typing import Dict, Optional, List
 
 import torch
-from baselooper import Module, ModuleConfig, State
 from torch.optim import Optimizer, SGD
 from yaloader import YAMLBaseConfig
 
+from mllooper import Module, ModuleConfig, State
 from mllooper.data import DatasetState
 from mllooper.metrics import MetricState
 from mllooper.models import Model

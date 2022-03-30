@@ -1,6 +1,6 @@
 import torch
-from baselooper import State
 
+from mllooper import State
 from mllooper.data import DatasetState
 from mllooper.metrics import ScalarMetric, ScalarMetricConfig
 from mllooper.models import ModelState

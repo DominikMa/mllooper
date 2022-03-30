@@ -4,10 +4,11 @@ from hashlib import blake2b
 from typing import Dict, Optional, Any, Union
 
 import torch
-from baselooper import State, SeededModule, SeededModuleConfig
 from pydantic import BaseModel, confloat
 from torch.utils.data import DataLoader as TorchDataLoader
 from torch.utils.data.dataloader import _BaseDataLoaderIter
+
+from mllooper import State, SeededModule, SeededModuleConfig
 
 
 class DataLoaderArgs(BaseModel):

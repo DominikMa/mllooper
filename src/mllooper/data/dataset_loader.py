@@ -1,10 +1,9 @@
 from dataclasses import dataclass
 from typing import Dict, Optional, List
 
-from baselooper import State, SeededModule, LooperState, SeededModuleConfig
-from baselooper.module import StopRun
-
+from mllooper import State, SeededModule, LooperState, SeededModuleConfig
 from mllooper.data.dataset import Dataset, DatasetConfig
+from mllooper.module import StopRun
 from mllooper.state_tests import StateTest, StateTestConfig
 
 
