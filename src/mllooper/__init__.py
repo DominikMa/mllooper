@@ -10,4 +10,4 @@ import mllooper.trainer
 
 import mllooper.logging
 
-VERSION = "0.0.1"
+VERSION = "0.0.2"
