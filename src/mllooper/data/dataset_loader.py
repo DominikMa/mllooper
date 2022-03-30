@@ -1,10 +1,11 @@
 from dataclasses import dataclass
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 
 from baselooper import State, SeededModule, LooperState, SeededModuleConfig
 from baselooper.module import StopRun
 
 from mllooper.data.dataset import Dataset, DatasetConfig
+from mllooper.state_tests import StateTest, StateTestConfig
 
 
 @dataclass
@@ -16,22 +17,23 @@ class DatasetLoaderState(State):
 
 class DatasetLoader(SeededModule):
     def __init__(self, datasets: Dict[str, Dataset], max_iterations: Optional[int] = None,
-                 max_epochs: Optional[int] = None, **kwargs):
+                 max_epochs: Optional[int] = None, next_dataset_tests: Optional[List[StateTest]] = None, **kwargs):
         super().__init__(**kwargs)
         self.datasets = datasets
         self.max_iterations = max_iterations
         self.max_epochs = max_epochs
+        self.next_dataset_tests = next_dataset_tests if next_dataset_tests is not None else []
 
         self.state = DatasetLoaderState()
         self.dataset_generator = self._dataset_generator()
-        self.current_dataset = next(self.dataset_generator)
+        self.current_dataset: Dataset = next(self.dataset_generator)
 
         self._consecutive_stop_iteration_counter = 0
 
     def step(self, state: State) -> None:
         self.state.iteration += 1
         state.dataset_loader_state = self.state
-        if self.state.next_dataset:
+        if self.state.next_dataset or any(map(lambda test: test(state), self.next_dataset_tests)):
             self.current_dataset = next(self.dataset_generator)
             self.state.next_dataset = False
 
@@ -55,6 +57,13 @@ class DatasetLoader(SeededModule):
                 self._consecutive_stop_iteration_counter += 1
                 self.current_dataset = next(self.dataset_generator)
 
+    def step_callback(self, state: State) -> None:
+        self.current_dataset.step_callback(state)
+
+    def log(self, state: State) -> None:
+        self.current_dataset.log(state)
+        super(DatasetLoader, self).log(state)
+
     def _dataset_generator(self) -> Dataset:
         while True:
             self.state.epoch += 1
@@ -63,12 +72,22 @@ class DatasetLoader(SeededModule):
                 yield dataset
 
 
-class DatasetLoaderConfig(SeededModuleConfig):
+class DatasetLoaderConfig(SeededModuleConfig, loaded_class=DatasetLoader):
     datasets: Dict[str, DatasetConfig]
     max_iterations: Optional[int] = None
     max_epochs: Optional[int] = None
+    next_dataset_tests: Optional[List[StateTestConfig]] = None
 
     def load(self, *args, **kwargs):
         config_data = dict(self)
-        config_data['datasets'] = {dataset_key: dataset.load() for dataset_key, dataset in config_data['datasets'].items()}
-        return DatasetLoader(**config_data)
+
+        config_data['datasets'] = {
+            dataset_key: dataset.load() for dataset_key, dataset in config_data['datasets'].items()
+        }
+
+        if config_data['next_dataset_tests'] is not None:
+            config_data['next_dataset_tests'] = [
+                next_dataset_test.load() for next_dataset_test in config_data['next_dataset_tests']
+            ]
+
+        return self._loaded_class(**config_data)
