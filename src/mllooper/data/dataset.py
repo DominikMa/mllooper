@@ -54,15 +54,18 @@ class Dataset(SeededModule, ABC):
         raise NotImplementedError
 
     def step(self, state: State) -> None:
-        self.state.iteration += 1
         self.initialise_torch_data_loader()
 
         self.state.data = None
         try:
             data = next(self._data_iterator)
         except StopIteration:
+            if self._data_iterator is not None:
+                del self._data_iterator
             self._data_iterator = None
             raise
+
+        self.state.iteration += 1
         data = self.move_data_to_device(data)
 
         self.state.data = data
@@ -73,6 +76,12 @@ class Dataset(SeededModule, ABC):
             _ = self.random.random()
             self.state.epoch += 1
             self._data_iterator = iter(self.data_loader)
+
+    def reinitialise_torch_data_loader(self):
+        if self._data_iterator is not None:
+            del self._data_iterator
+        self._data_iterator = None
+        self.initialise_torch_data_loader()
 
     def get_torch_data_loader(self):
         return TorchDataLoader(self, worker_init_fn=self._worker_init_fn, **self.data_loader_args.dict())
