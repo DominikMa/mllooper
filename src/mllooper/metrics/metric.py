@@ -1,7 +1,7 @@
 import operator
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from operator import itemgetter, attrgetter
+from datetime import datetime
 from typing import Optional, Any, Dict, Literal, List
 
 import torch
@@ -23,6 +23,26 @@ class Metric(Module, ABC):
         self.requires_grad = requires_grad
 
         self.state = MetricState()
+
+        self._last_log_time_per_dataset = {}
+
+    def log(self, state: State) -> None:
+        """Save last log time per dataset name."""
+        try:
+            dataset_state: DatasetState = state.dataset_state
+        except AttributeError as e:
+            self.logger.warning(e)
+            return
+
+        dataset_name = dataset_state.name
+        now = datetime.now()
+        last_log_time = self._last_log_time_per_dataset.get(dataset_name, None)
+        if last_log_time and now - last_log_time < self.log_time_delta:
+            return
+        self._last_log_time = now
+        self._last_log_time_per_dataset[dataset_name] = now
+
+        self._log(state)
 
     def step(self, state: State) -> None:
         dataset_state: DatasetState = state.dataset_state
