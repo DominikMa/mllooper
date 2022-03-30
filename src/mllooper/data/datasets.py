@@ -3,7 +3,6 @@ import string
 from typing import Tuple, Union, List
 
 import numpy as np
-import yaloader
 
 from mllooper.data import PartitionedDataset, PartitionedDatasetConfig, IterableDataset
 
@@ -15,7 +14,8 @@ class AlwaysClassZeroDataset(PartitionedDataset):
             nr_features = (nr_features, )
         self.features = nr_features
         self.samples = nr_samples
-        self.data, self.labels, self.identifiers = self.generate_data(self.features, nr_samples, seed=self.random.randint(0, 99999))
+        self.data, self.labels, self.identifiers = self.generate_data(self.features, nr_samples,
+                                                                      seed=self.random.randint(0, 99999))
 
         indices = []
         identifiers = []
@@ -28,7 +28,6 @@ class AlwaysClassZeroDataset(PartitionedDataset):
         self.data = self.data[indices]
         self.labels = self.labels[indices]
         self.identifiers = identifiers
-
 
     @staticmethod
     def generate_data(nr_features: Tuple[int, ...] = (2,), nr_samples: int = 1000, seed: int = 0) -> Tuple[np.ndarray, np.ndarray, List[str]]:
@@ -55,8 +54,7 @@ class AlwaysClassZeroDataset(PartitionedDataset):
         return len(self.data)
 
 
-@yaloader.loads(AlwaysClassZeroDataset)
-class AlwaysClassZeroDatasetConfig(PartitionedDatasetConfig):
+class AlwaysClassZeroDatasetConfig(PartitionedDatasetConfig, loaded_class=AlwaysClassZeroDataset):
     nr_features: Union[int, Tuple[int, ...]] = 2
     nr_samples: int = 1000
 
@@ -71,8 +69,7 @@ class AlwaysClassZeroItDataset(AlwaysClassZeroDataset, IterableDataset):
         }
 
 
-@yaloader.loads(AlwaysClassZeroItDataset)
-class AlwaysClassZeroItDatasetConfig(AlwaysClassZeroDatasetConfig):
+class AlwaysClassZeroItDatasetConfig(AlwaysClassZeroDatasetConfig, loaded_class=AlwaysClassZeroItDataset):
     pass
 
 
@@ -124,8 +121,7 @@ class RandomClassDataset(PartitionedDataset):
         return len(self.data)
 
 
-@yaloader.loads(RandomClassDataset)
-class RandomClassDatasetConfig(PartitionedDatasetConfig):
+class RandomClassDatasetConfig(PartitionedDatasetConfig, loaded_class=RandomClassDataset):
     nr_features: Union[int, Tuple[int, ...]] = 2
     nr_classes: int = 2
     nr_samples: int = 1000
@@ -141,6 +137,5 @@ class RandomClassItDataset(RandomClassDataset, IterableDataset):
         }
 
 
-@yaloader.loads(RandomClassItDataset)
-class RandomClassItDatasetConfig(RandomClassDatasetConfig):
+class RandomClassItDatasetConfig(RandomClassDatasetConfig, loaded_class=RandomClassItDataset):
     pass

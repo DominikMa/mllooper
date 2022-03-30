@@ -174,28 +174,28 @@ class PartitionedDataset(Dataset, ABC):
             if partition.start is None:
                 partition.start = last_partition_end
             last_partition_end = partition.start + partition.size
-        self.ensusre_nonoverlapping_partitions(partitions)
+        self.ensure_non_overlapping_partitions(partitions)
 
         if not self.state.name.endswith(self.partition):
             self.state.name = f"{self.state.name} {self.partition}"
 
     @staticmethod
-    def ensusre_nonoverlapping_partitions(partitions: Dict[str, DatasetPartition]) -> None:
+    def ensure_non_overlapping_partitions(partitions: Dict[str, DatasetPartition]) -> None:
         checked_partitions: Dict[str, DatasetPartition] = {}
         for partition_name, partition in partitions.items():
-            for checked_partition_name, checked_partition in checked_partitions.items():
-                if checked_partition.start <= partition.start < checked_partition.start + checked_partition.size:
+            for checked_name, checked in checked_partitions.items():
+                if checked.start <= partition.start < checked.start + checked.size:
                     raise RuntimeError(f'Start of {partition_name} partition '
-                                       f'lies in {checked_partition_name} partition.')
-                if checked_partition.start < partition.start + partition.size < checked_partition.start + checked_partition.size:
+                                       f'lies in {checked_name} partition.')
+                if checked.start < partition.start + partition.size < checked.start + checked.size:
                     raise RuntimeError(f'End of {partition_name} partition '
-                                       f'lies in {checked_partition_name} partition.')
+                                       f'lies in {checked_name} partition.')
                 if (
-                    partition.start < checked_partition.start and
-                    checked_partition.start + checked_partition.size <= partition.start + partition.size
+                    partition.start < checked.start and
+                    checked.start + checked.size <= partition.start + partition.size
                 ):
                     raise RuntimeError(f'Partition {partition_name} includes'
-                                       f'partition {checked_partition_name}.')
+                                       f'partition {checked_name}.')
             checked_partitions[partition_name] = partition
 
     def identifier_to_representation(self, identifier: str) -> float:

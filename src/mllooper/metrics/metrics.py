@@ -1,5 +1,4 @@
 import torch
-import yaloader
 from baselooper import State
 
 from mllooper.data import DatasetState
@@ -27,6 +26,5 @@ class CrossEntropyLoss(ScalarMetric):
         return x.mean() < y.mean()
 
 
-@yaloader.loads(CrossEntropyLoss)
-class CrossEntropyLossConfig(ScalarMetricConfig):
+class CrossEntropyLossConfig(ScalarMetricConfig, loaded_class=CrossEntropyLoss):
     name: str = "CrossEntropyLoss"

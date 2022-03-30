@@ -4,7 +4,6 @@ from pathlib import Path
 
 import numpy as np
 import torch
-import yaloader
 from PIL import Image
 from baselooper.logging.handler import FileLogBase, FileLogBaseConfig, TextFileLog, ConsoleLog, TextFileLogConfig, \
     ConsoleLogConfig
@@ -14,15 +13,16 @@ from mllooper.logging.messages import TensorBoardLogMessage, TextLogMessage, Ima
     HistogramLogMessage, PointCloudLogMessage, ScalarLogMessage, FigureLogMessage, ModelGraphLogMessage, ModelLogMessage
 
 
-class TensorBoadHandler(Handler):
+class TensorBoardHandler(Handler):
     def __init__(self, log_dir: Path):
         super().__init__()
         self.log_dir = log_dir
+        # noinspection PyTypeChecker
         self.sw: SummaryWriter = SummaryWriter(log_dir=self.log_dir)
 
     def close(self) -> None:
         self.sw.close()
-        super(TensorBoadHandler, self).close()
+        super(TensorBoardHandler, self).close()
 
     def emit(self, record: LogRecord) -> None:
         # Skip if it isn't a subclass of `LogMessage`
@@ -74,8 +74,6 @@ class FileHandler(Handler):
 
     def emit(self, record: LogRecord) -> None:
         # Skip if it isn't a subclass of `LogMessage`
-
-
         if isinstance(record.msg, ImageLogMessage) and record.msg.save_file:
             img_log: ImageLogMessage = record.msg
             tag = img_log.tag if img_log.tag else record.name
@@ -104,12 +102,11 @@ class FileHandler(Handler):
 class TensorBoardLog(FileLogBase):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        handler = TensorBoadHandler(log_dir=self.log_dir)
+        handler = TensorBoardHandler(log_dir=self.log_dir)
         self.set_handler(handler)
 
 
-@yaloader.loads(TensorBoardLog)
-class TensorBoardLogConfig(FileLogBaseConfig):
+class TensorBoardLogConfig(FileLogBaseConfig, loaded_class=TensorBoardLog):
     pass
 
 
@@ -120,8 +117,7 @@ class FileLog(FileLogBase):
         self.set_handler(handler)
 
 
-@yaloader.loads(FileLog)
-class FileLogConfig(FileLogBaseConfig):
+class FileLogConfig(FileLogBaseConfig, loaded_class=FileLog):
     pass
 
 
@@ -131,8 +127,7 @@ class MLTextFileLog(TextFileLog):
         self.handler.addFilter(TensorBoardLogFilter())
 
 
-@yaloader.loads(MLTextFileLog)
-class MLTextFileLogConfig(TextFileLogConfig, overwrite_tag=True):
+class MLTextFileLogConfig(TextFileLogConfig, overwrite_tag=True, loaded_class=MLTextFileLog):
     _yaml_tag = "!TextFileLog"
 
 
@@ -142,8 +137,7 @@ class MLConsoleLog(ConsoleLog):
         self.handler.addFilter(TensorBoardLogFilter())
 
 
-@yaloader.loads(MLConsoleLog)
-class MLConsoleLogConfig(ConsoleLogConfig, overwrite_tag=True):
+class MLConsoleLogConfig(ConsoleLogConfig, overwrite_tag=True, loaded_class=MLConsoleLog):
     _yaml_tag = "!ConsoleLog"
 
 

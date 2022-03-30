@@ -2,7 +2,7 @@ from typing import Dict
 
 from baselooper import State
 
-from mllooper.data import DatasetLoaderState, DatasetState
+from mllooper.data import DatasetState
 from mllooper.state_tests import StateTest, StateTestConfig
 
 

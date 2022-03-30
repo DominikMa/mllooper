@@ -1,7 +1,6 @@
 from functools import partial
 from typing import List, Any, Literal
 
-import yaloader
 from torch import nn
 from torch.hub import load_state_dict_from_url
 from torchvision.models import EfficientNet as TorchEfficientNet
@@ -74,8 +73,7 @@ class EfficientNet(Model):
         super().__init__(torch_model, **kwargs)
 
 
-@yaloader.loads(EfficientNet)
-class EfficientNetConfig(ModelConfig):
+class EfficientNetConfig(ModelConfig, loaded_class=EfficientNet):
     model: Literal['b0', 'b1']
     pretrained: bool = False
     in_channels: int = 3

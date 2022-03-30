@@ -2,7 +2,6 @@ from abc import ABC
 from typing import Dict, Optional, List
 
 import torch
-import yaloader
 from baselooper import Module, ModuleConfig, State
 from torch.optim import Optimizer, SGD
 from yaloader import YAMLBaseConfig
@@ -16,8 +15,7 @@ class OptimizerConfig(YAMLBaseConfig, ABC):
     params: Optional[List] = None
 
 
-@yaloader.loads(SGD)
-class SGDConfig(OptimizerConfig):
+class SGDConfig(OptimizerConfig, loaded_class=SGD):
     lr: float
     momentum: float = 0
     dampening: float = 0
@@ -33,7 +31,8 @@ class Trainer(Module):
 
     def initialise(self, modules: Dict[str, Module]) -> None:
         try:
-            model: Model = modules['model']
+            model = modules['model']
+            assert isinstance(model, Model)
             self._optimizer_config.params = model.trainable_parameters(self._optimizer_config.params)
         except KeyError:
             raise KeyError(f"{self.name} needs a model to be in the initialization dictionary "
