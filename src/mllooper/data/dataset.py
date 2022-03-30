@@ -153,8 +153,10 @@ class DatasetPartition(BaseModel):
 
 
 class PartitionedDataset(Dataset, ABC):
-    def __init__(self, partition: str, partitions: Dict[str, DatasetPartition], **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, partition: str, partitions: Dict[str, DatasetPartition], dataset_type: Optional[str] = None,
+                 **kwargs):
+        dataset_type = partition if dataset_type is None else dataset_type
+        super().__init__(dataset_type=dataset_type, **kwargs)
         self.partition = partition
         self.partitions = partitions
 
@@ -165,7 +167,8 @@ class PartitionedDataset(Dataset, ABC):
             last_partition_end = partition.start + partition.size
         self.ensusre_nonoverlapping_partitions(partitions)
 
-        self.state.name = f"{self.state.name} {self.partition}"
+        if not self.state.name.endswith(self.partition):
+            self.state.name = f"{self.state.name} {self.partition}"
 
     @staticmethod
     def ensusre_nonoverlapping_partitions(partitions: Dict[str, DatasetPartition]) -> None:
@@ -188,7 +191,7 @@ class PartitionedDataset(Dataset, ABC):
 
     def identifier_to_representation(self, identifier: str) -> float:
         identifier_hash = blake2b(identifier.encode('utf-8'), salt=self.seed.to_bytes(16, 'big'))
-        return (int(identifier_hash.hexdigest(), 16) % 999998) / 999998
+        return (int(identifier_hash.hexdigest(), 16) % 999999) / 999998
 
     def representation_to_partition(self, representation: float) -> Optional[str]:
         if representation < 0 or representation > 1:
