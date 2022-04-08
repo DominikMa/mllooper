@@ -15,7 +15,8 @@ from torch.utils.tensorboard import SummaryWriter
 
 from mllooper import Module, ModuleConfig, State
 from mllooper.logging.messages import TensorBoardLogMessage, TextLogMessage, ImageLogMessage, \
-    HistogramLogMessage, PointCloudLogMessage, ScalarLogMessage, FigureLogMessage, ModelGraphLogMessage, ModelLogMessage
+    HistogramLogMessage, PointCloudLogMessage, ScalarLogMessage, FigureLogMessage, ModelGraphLogMessage, \
+    ModelLogMessage, ConfigLogMessage
 
 
 class LogHandler(Module):
@@ -37,7 +38,7 @@ class LogHandler(Module):
 
 
 class LogHandlerConfig(ModuleConfig):
-    time_stamp: Optional[datetime] = datetime.utcnow().replace(microsecond=0)
+    time_stamp: Optional[datetime] = datetime.now().replace(microsecond=0)
 
 
 class FileLogBase(LogHandler):
@@ -64,7 +65,7 @@ class TextFileLog(FileLogBase):
 
 
 class TextFileLogConfig(FileLogBaseConfig, loaded_class=TextFileLog):
-    pass
+    level: int = logging.WARNING
 
 
 class ConsoleLog(LogHandler):
@@ -97,45 +98,48 @@ class TensorBoardHandler(Handler):
 
     def emit(self, record: LogRecord) -> None:
         # Skip if it isn't a subclass of `LogMessage`
-        if not isinstance(record.msg, TensorBoardLogMessage):
-            return
+        if isinstance(record.msg, TensorBoardLogMessage):
 
-        tag = record.msg.tag if record.msg.tag else record.name
-        step = record.msg.step if record.msg.step else 0
-        if isinstance(record.msg, ScalarLogMessage):
-            scalar_log: ScalarLogMessage = record.msg
-            self.sw.add_scalar(tag, scalar_value=scalar_log.scalar, new_style=True, global_step=step)
+            tag = record.msg.tag if record.msg.tag else record.name
+            step = record.msg.step if record.msg.step else 0
+            if isinstance(record.msg, ScalarLogMessage):
+                scalar_log: ScalarLogMessage = record.msg
+                self.sw.add_scalar(tag, scalar_value=scalar_log.scalar, new_style=True, global_step=step)
 
-        elif isinstance(record.msg, TextLogMessage):
-            text_log: TextLogMessage = record.msg
-            self.sw.add_text(tag, text_string=text_log.formatted_text, global_step=step)
+            elif isinstance(record.msg, TextLogMessage):
+                text_log: TextLogMessage = record.msg
+                self.sw.add_text(tag, text_string=text_log.formatted_text, global_step=step)
 
-        elif isinstance(record.msg, ImageLogMessage):
-            img_log: ImageLogMessage = record.msg
-            self.sw.add_image(tag, img_tensor=img_log.image, global_step=step)
+            elif isinstance(record.msg, ImageLogMessage):
+                img_log: ImageLogMessage = record.msg
+                self.sw.add_image(tag, img_tensor=img_log.image, global_step=step)
 
-        elif isinstance(record.msg, FigureLogMessage):
-            figure_log: FigureLogMessage = record.msg
-            self.sw.add_figure(tag, figure=figure_log.figure, global_step=step)
+            elif isinstance(record.msg, FigureLogMessage):
+                figure_log: FigureLogMessage = record.msg
+                self.sw.add_figure(tag, figure=figure_log.figure, global_step=step)
 
-        elif isinstance(record.msg, HistogramLogMessage):
-            hist_log: HistogramLogMessage = record.msg
-            self.sw.add_histogram(tag, values=hist_log.array, global_step=step)
+            elif isinstance(record.msg, HistogramLogMessage):
+                hist_log: HistogramLogMessage = record.msg
+                self.sw.add_histogram(tag, values=hist_log.array, global_step=step)
 
-        elif isinstance(record.msg, PointCloudLogMessage):
-            point_cloud_log: PointCloudLogMessage = record.msg
+            elif isinstance(record.msg, PointCloudLogMessage):
+                point_cloud_log: PointCloudLogMessage = record.msg
 
-            vertices = torch.unsqueeze(point_cloud_log.points, dim=0)
-            if point_cloud_log.colors is not None:
-                colors = torch.unsqueeze(point_cloud_log.colors, dim=0)
-            else:
-                colors = None
+                vertices = torch.unsqueeze(point_cloud_log.points, dim=0)
+                if point_cloud_log.colors is not None:
+                    colors = torch.unsqueeze(point_cloud_log.colors, dim=0)
+                else:
+                    colors = None
 
-            self.sw.add_mesh(tag, vertices=vertices, colors=colors, global_step=step)
+                self.sw.add_mesh(tag, vertices=vertices, colors=colors, global_step=step)
 
-        elif isinstance(record.msg, ModelGraphLogMessage):
-            model_graph_log: ModelGraphLogMessage = record.msg
-            self.sw.add_graph(model=model_graph_log.model, input_to_model=model_graph_log.input_to_model)
+            elif isinstance(record.msg, ModelGraphLogMessage):
+                model_graph_log: ModelGraphLogMessage = record.msg
+                self.sw.add_graph(model=model_graph_log.model, input_to_model=model_graph_log.input_to_model)
+
+        elif isinstance(record.msg, ConfigLogMessage):
+            config_log: ConfigLogMessage = record.msg
+            self.sw.add_text(config_log.name, text_string=config_log.formatted_text)
 
 
 class FileHandler(Handler):
@@ -167,7 +171,15 @@ class FileHandler(Handler):
 
             model_state_dict = model_log.model.state_dict()
             file_name = f"{model_log.name}-{ model_log.step}.pth" if model_log.step is not None else f"{model_log.name}.pth"
-            torch.save(model_state_dict, file_name)
+            file_path = self.log_dir.joinpath(file_name)
+            torch.save(model_state_dict, file_path)
+
+        elif isinstance(record.msg, ConfigLogMessage):
+            config_log: ConfigLogMessage = record.msg
+
+            file_name = f"{config_log.name}.yaml"
+            file_path = self.log_dir.joinpath(file_name)
+            file_path.write_text(config_log.config, 'utf-8')
 
 
 class TensorBoardLog(FileLogBase):

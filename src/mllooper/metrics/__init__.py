@@ -16,4 +16,8 @@ from mllooper.metrics.metric import (
     Loss,
     LossConfig
 )
-from mllooper.metrics.metrics import CrossEntropyLoss
+from mllooper.metrics.metrics import (
+    CrossEntropyLoss,
+    MSELoss,
+    MAELoss
+)

@@ -1,8 +1,8 @@
 from abc import ABC
-from typing import Dict, Optional, List
+from typing import Dict, Optional, List, Tuple
 
 import torch
-from torch.optim import Optimizer, SGD
+from torch.optim import Optimizer, SGD, Adam
 from yaloader import YAMLBaseConfig
 
 from mllooper import Module, ModuleConfig, State
@@ -21,6 +21,14 @@ class SGDConfig(OptimizerConfig, loaded_class=SGD):
     dampening: float = 0
     weight_decay: float = 0
     nesterov: bool = False
+
+
+class AdamConfig(OptimizerConfig, loaded_class=Adam):
+    lr: float
+    betas: Tuple[float, float] = (0.9, 0.999)
+    eps: float = 1e-8
+    weight_decay: float = 0
+    amsgrad: bool = False
 
 
 class Trainer(Module):

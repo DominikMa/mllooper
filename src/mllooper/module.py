@@ -126,7 +126,7 @@ class Module(ABC):
         """
         pass
 
-    def log(self, state: State) -> None:
+    def log(self, state: State) -> bool:
         """ Log information from the module.
 
         The logic for logging should be implemented in :meth:`mllooper.module.Module._log`
@@ -135,10 +135,11 @@ class Module(ABC):
         """
         now = datetime.now()
         if self._last_log_time and now - self._last_log_time < self.log_time_delta:
-            return
+            return False
         self._last_log_time = now
 
         self._log(state)
+        return True
 
     def _log(self, state: State) -> None:
         """ Log information from the module.
@@ -213,14 +214,20 @@ class ModuleList(Module):
         super().__init__(**kwargs)
         self.modules = modules
 
-    def initialise(self, modules: Dict[str, Module] = None):
+    def initialise(self, modules: Dict[str, Module]):
         """ Perform initialization steps of all modules in the list.
 
         :param Dict[str, Module] modules: Dictionary of other modules which are already initialised
         """
+        list_modules = modules.copy()
         for module in self.modules:
-            module.initialise(modules)
-            # TODO add initialised modules to the dict?
+            if module.name in list_modules:
+                raise RuntimeError(f"The name {module.name} is already in the key of initialized modules."
+                                   f"Either this module is initialised twice or an other module uses the same name.")
+            list_modules[module.name] = module
+
+        for module in self.modules:
+            module.initialise(list_modules)
 
     def teardown(self, state: State):
         """ Teardown all modules in the list.

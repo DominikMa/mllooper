@@ -160,3 +160,25 @@ class ModelLogMessage(BaseModel):
 
     def __repr__(self):
         return f"{self.__class__.__name__}({str(self)})"
+
+
+class ConfigLogMessage(BaseModel):
+    """Log message for a config"""
+    name: str
+    config: str
+
+    @property
+    def formatted_text(self):
+        text = self.config
+        if not text.startswith('<pre>'):
+            text = f'<pre>{text}'
+        if not text.endswith('</pre>'):
+            text = f'{text}</pre>'
+        return text
+
+    def __str__(self):
+        msg = f"Logged config to {self.name}.yaml"
+        return msg
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}({str(self)})"

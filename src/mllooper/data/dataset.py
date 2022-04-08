@@ -6,6 +6,7 @@ from typing import Dict, Optional, Any, Union
 import torch
 from pydantic import BaseModel, confloat
 from torch.utils.data import DataLoader as TorchDataLoader
+from torch.utils.data import IterableDataset as TorchIterableDataset
 from torch.utils.data.dataloader import _BaseDataLoaderIter
 
 from mllooper import State, SeededModule, SeededModuleConfig
@@ -42,7 +43,8 @@ class Dataset(SeededModule, ABC):
         self.device = torch.device(device)
 
         self.data_loader_args = data_loader_args if data_loader_args is not None else DataLoaderArgs()
-        self.data_loader = self.get_torch_data_loader()
+
+        self._data_loader = None
         self._data_iterator: Optional[_BaseDataLoaderIter] = None
 
         name = f"{self.name} {self.type}" if self.type is not None else self.name
@@ -53,6 +55,12 @@ class Dataset(SeededModule, ABC):
 
     def __len__(self):
         raise NotImplementedError
+
+    @property
+    def data_loader(self):
+        if self._data_loader is None:
+            self._data_loader = TorchDataLoader(self, worker_init_fn=self._worker_init_fn, **self.data_loader_args.dict())
+        return self._data_loader
 
     def step(self, state: State) -> None:
         self.initialise_torch_data_loader()
@@ -83,9 +91,6 @@ class Dataset(SeededModule, ABC):
             del self._data_iterator
         self._data_iterator = None
         self.initialise_torch_data_loader()
-
-    def get_torch_data_loader(self):
-        return TorchDataLoader(self, worker_init_fn=self._worker_init_fn, **self.data_loader_args.dict())
 
     def move_data_to_device(self, data: Union[torch.Tensor, Dict[str, torch.Tensor]]):
         if isinstance(data, torch.Tensor):
@@ -131,7 +136,8 @@ class Dataset(SeededModule, ABC):
         self.type = dataset_type
         self.device = torch.device(device)
         self.data_loader_args = DataLoaderArgs(**data_loader_args)
-        self.data_loader = self.get_torch_data_loader()
+        # TODO
+        # self.data_loader = self.get_torch_data_loader()
         self.state = state
 
 
@@ -142,7 +148,7 @@ class DatasetConfig(SeededModuleConfig, ABC):
     device: str = 'cpu'
 
 
-class IterableDataset(Dataset, ABC):
+class IterableDataset(TorchIterableDataset, Dataset, ABC):
 
     def __getitem__(self, index: int):
         raise NotImplementedError

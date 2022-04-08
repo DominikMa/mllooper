@@ -32,6 +32,8 @@ class Model(SeededModule, ABC):
         self.state.output = None
 
         module_input = self.format_module_input(dataset_state.data)
+
+        self.module.train() if dataset_state.train else self.module.eval()
         with torch.set_grad_enabled(dataset_state.train):
             module_output = self.module(module_input)
 
@@ -89,3 +91,4 @@ class Model(SeededModule, ABC):
 
 class ModelConfig(SeededModuleConfig):
     module_load_file: Optional[Path]
+    device: str = 'cpu'

@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Dict, Optional, List
+from typing import Dict, Optional, List, Generator
 
 from mllooper import State, SeededModule, LooperState, SeededModuleConfig
 from mllooper.data.dataset import Dataset, DatasetConfig
@@ -63,7 +63,7 @@ class DatasetLoader(SeededModule):
         self.current_dataset.log(state)
         super(DatasetLoader, self).log(state)
 
-    def _dataset_generator(self) -> Dataset:
+    def _dataset_generator(self) -> Generator[Dataset, None, None]:
         while True:
             self.state.epoch += 1
             for dataset in self.datasets.values():

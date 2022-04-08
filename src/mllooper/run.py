@@ -1,5 +1,6 @@
 import importlib
 import json
+import logging
 import re
 import subprocess
 import sys
@@ -8,12 +9,14 @@ from pathlib import Path
 from typing import Tuple
 
 import click
+import yaml
 from click import BadParameter
 from pydantic import ValidationError
-from yaloader import ConfigLoader
+from yaloader import ConfigLoader, YAMLConfigDumper
 from yaml import MarkedYAMLError
 
 from mllooper import Module, ModuleConfig
+from mllooper.logging.messages import ConfigLogMessage
 
 
 def install_package(package_name: str):
@@ -126,7 +129,7 @@ def run(config_paths: Tuple[Path], config_dirs: Tuple[Path], yaml_strings: Tuple
             raise BadParameter(f"{e}") from e
 
     # load and run the run configuration
-    if (path := Path(run_config)).is_file():
+    if (path := Path(run_config)).is_file() or Path(run_config).with_suffix('.yaml').is_file():
         try:
             constructed_run = config_loader.construct_from_file(path, auto_load=auto_load)
         except (FileNotFoundError, MarkedYAMLError, ValidationError) as e:
@@ -146,7 +149,22 @@ def run(config_paths: Tuple[Path], config_dirs: Tuple[Path], yaml_strings: Tuple
         if not isinstance(constructed_run, ModuleConfig):
             raise BadParameter(f"The run configuration RUN_CONFIG has to be a mllooper Module. "
                                f"Got {type(constructed_run)} instead.")
-        constructed_run.load().run()
+        loaded_run = constructed_run.load()
+
+        # Log config
+        logger = logging.getLogger('ML Looper')
+        logger.setLevel(logging.INFO)
+
+        YAMLConfigDumper.exclude_unset = False
+        YAMLConfigDumper.exclude_defaults = False
+        config = yaml.dump(constructed_run, Dumper=YAMLConfigDumper)
+        logger.info(ConfigLogMessage(name='full_config', config=config))
+        YAMLConfigDumper.exclude_unset = True
+        YAMLConfigDumper.exclude_defaults = True
+        config = yaml.dump(constructed_run, Dumper=YAMLConfigDumper)
+        logger.info(ConfigLogMessage(name='config', config=config))
+
+        loaded_run.run()
 
 
 @cli.command()

@@ -68,7 +68,7 @@ class Looper(Module):
         self._last_log_iteration_count = 0
         self._last_log_iteration_time = datetime.datetime.now()
 
-    def initialise(self, modules: Dict[str, Module] = None):
+    def initialise(self, modules: Dict[str, Module]):
         """ Perform initialization steps of all modules in the loop.
 
         Modules in the loop should not depend on modules outside the loop.
@@ -77,14 +77,14 @@ class Looper(Module):
 
         :param Dict[str, Module] modules: Dictionary of other modules which are already initialised
         """
-        if self.name in modules.keys():
-            raise RuntimeError(f"The name {self.name} is already in the key of initialized modules."
-                               f"Either this module is initialised twice or an other module uses the same key.")
+        # if self.name in modules.keys():
+        #     raise RuntimeError(f"The name {self.name} is already in the key of initialized modules."
+        #                        f"Either this module is initialised twice or an other module uses the same key.")
 
-        looper_modules = {}
+        looper_modules = {key: module for key, module in iterate_modules(self.modules, skip_references=True)}
         for key, module in iterate_modules(self.modules):
+            module: Module
             module.initialise(looper_modules)
-            looper_modules[key] = module
 
         # TODO do not add the module itself. Caller function should take care of that
         # modules[self.name] = self
@@ -140,26 +140,25 @@ class Looper(Module):
 
         :param State state: The current state
         """
-        self.log(state)
+        if self.log(state):
+            iterations_since_last_log = self.inner_state.looper_state.total_iteration - self._last_log_iteration_count
+            now = datetime.datetime.now()
+            time_since_last_log = now - self._last_log_iteration_time
+
+            self._last_log_iteration_count = self.inner_state.looper_state.total_iteration
+            self._last_log_iteration_time = now
+
+            iterations_per_second = iterations_since_last_log / time_since_last_log.total_seconds()
+
+            try:
+                self._iterations_per_second = self._iterations_per_second * 0.9 + iterations_per_second * 0.1
+            except TypeError:
+                self._iterations_per_second = iterations_per_second
+
+            self.logger.info(f"Doing {self._iterations_per_second:0.2f} iterations per second")
+
         for _, module in iterate_modules(self.modules, skip_references=True):
             module.log(self.inner_state)
-
-    def _log(self, state: State) -> None:
-        iterations_since_last_log = self.inner_state.looper_state.total_iteration - self._last_log_iteration_count
-        now = datetime.datetime.now()
-        time_since_last_log = now - self._last_log_iteration_time
-
-        self._last_log_iteration_count = self.inner_state.looper_state.total_iteration
-        self._last_log_iteration_time = now
-
-        iterations_per_second = iterations_since_last_log / time_since_last_log.total_seconds()
-
-        try:
-            self._iterations_per_second = self._iterations_per_second * 0.9 + iterations_per_second * 0.1
-        except TypeError:
-            self._iterations_per_second = iterations_per_second
-
-        self.logger.info(f"Doing {self._iterations_per_second:0.2f} iterations per second")
 
     def state_dict(self) -> Dict[str, Any]:
         state_dict = super(Looper, self).state_dict()
