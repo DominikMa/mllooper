@@ -124,7 +124,8 @@ def run(config_paths: Tuple[Path], config_dirs: Tuple[Path], yaml_strings: Tuple
 
     for yaml_string in yaml_strings:
         try:
-            config_loader.load_string(yaml_string)
+            # config_loader.load_string(yaml_string)
+            config_loader.add_single_config_string(yaml_string, priority=100)
         except (MarkedYAMLError, ValidationError) as e:
             raise BadParameter(f"{e}") from e
 
