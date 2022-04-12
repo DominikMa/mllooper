@@ -98,8 +98,8 @@ class Dataset(SeededModule, ABC):
         elif isinstance(data, dict):
             for key, value in data.items():
                 if not isinstance(value, torch.Tensor):
-                    self.logger.warning(f'Expected torch.Tensor for every key in the data dict, '
-                                        f'but got {type(value)} for key {key}.')
+                    self.logger.debug(f'Expected torch.Tensor for every key in the data dict, '
+                                      f'but got {type(value)} for key {key}.')
                     continue
                 data[key] = value.to(self.device)
             return data
