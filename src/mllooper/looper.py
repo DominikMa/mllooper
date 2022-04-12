@@ -155,7 +155,9 @@ class Looper(Module):
             except TypeError:
                 self._iterations_per_second = iterations_per_second
 
-            self.logger.info(f"Doing {self._iterations_per_second:0.2f} iterations per second")
+            # self.logger.info(f"Doing {self._iterations_per_second:0.2f} iterations per second")
+            self.logger.info(f"Iteration {self.inner_state.looper_state.total_iteration} "
+                             f"({self._iterations_per_second:0.2f} it/s")
 
         for _, module in iterate_modules(self.modules, skip_references=True):
             module.log(self.inner_state)
