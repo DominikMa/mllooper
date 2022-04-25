@@ -16,7 +16,7 @@ from torch.utils.tensorboard import SummaryWriter
 from mllooper import Module, ModuleConfig, State
 from mllooper.logging.messages import TensorBoardLogMessage, TextLogMessage, ImageLogMessage, \
     HistogramLogMessage, PointCloudLogMessage, ScalarLogMessage, FigureLogMessage, ModelGraphLogMessage, \
-    ModelLogMessage, ConfigLogMessage
+    ModelLogMessage, ConfigLogMessage, BytesIOLogMessage, StringIOLogMessage
 
 
 class LogHandler(Module):
@@ -180,6 +180,25 @@ class FileHandler(Handler):
             file_name = f"{config_log.name}.yaml"
             file_path = self.log_dir.joinpath(file_name)
             file_path.write_text(config_log.config, 'utf-8')
+        elif isinstance(record.msg, BytesIOLogMessage):
+            bytes_log: BytesIOLogMessage = record.msg
+
+            file_name = Path(bytes_log.name)
+            if bytes_log.step is not None:
+                file_name = file_name.with_stem(f"{file_name.stem}-{bytes_log.step}")
+            file_path = self.log_dir.joinpath(file_name)
+
+            file_path.write_bytes(bytes_log.bytes.getvalue())
+
+        elif isinstance(record.msg, StringIOLogMessage):
+            string_log: StringIOLogMessage = record.msg
+
+            file_name = Path(string_log.name)
+            if string_log.step is not None:
+                file_name = file_name.with_stem(f"{file_name.stem}-{string_log.step}")
+            file_path = self.log_dir.joinpath(file_name)
+
+            file_path.write_text(string_log.text.getvalue(), encoding=string_log.encoding)
 
 
 class TensorBoardLog(FileLogBase):

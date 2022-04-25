@@ -1,3 +1,4 @@
+from io import BytesIO, StringIO
 from typing import Optional, Dict, Any
 
 import numpy as np
@@ -178,6 +179,47 @@ class ConfigLogMessage(BaseModel):
 
     def __str__(self):
         msg = f"Logged config to {self.name}.yaml"
+        return msg
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}({str(self)})"
+
+
+class BytesIOLogMessage(BaseModel):
+    """Log message for bytes"""
+    step: Optional[int] = None
+    name: str
+    bytes: BytesIO
+
+    class Config:
+        """Allow arbitrary types because `io.BytesIO` can not be checked"""
+        arbitrary_types_allowed = True
+
+    def __str__(self):
+        msg = f"Logged {self.name}"
+        if self.step:
+            msg = f"{msg} at step {self.step}"
+        return msg
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}({str(self)})"
+
+
+class StringIOLogMessage(BaseModel):
+    """Log message for text"""
+    step: Optional[int] = None
+    name: str
+    text: StringIO
+    encoding: str = 'utf-8'
+
+    class Config:
+        """Allow arbitrary types because `io.StringIO` can not be checked"""
+        arbitrary_types_allowed = True
+
+    def __str__(self):
+        msg = f"Logged {self.name}"
+        if self.step:
+            msg = f"{msg} at step {self.step}"
         return msg
 
     def __repr__(self):
