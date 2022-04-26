@@ -39,9 +39,9 @@ class Metric(Module, ABC):
         last_log_time = self._last_log_time_per_dataset.get(dataset_name, None)
         if last_log_time and now - last_log_time < self.log_time_delta:
             return
+
         self._last_log_time = now
         self._last_log_time_per_dataset[dataset_name] = now
-
         self._log(state)
 
     def step(self, state: State) -> None:
@@ -437,6 +437,7 @@ class Loss(ScalarMetric):
                     metric_state: MetricState = state.__dict__.pop(key)
                     output = metric_state.output * weight
                 else:
+                    # TODO why is `.output` missing
                     output += state.__dict__.pop(key) * weight
                 weight_sum += weight
         output = output / weight_sum

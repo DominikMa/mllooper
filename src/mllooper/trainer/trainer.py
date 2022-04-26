@@ -32,10 +32,13 @@ class AdamConfig(OptimizerConfig, loaded_class=Adam):
 
 
 class Trainer(Module):
-    def __init__(self, optimizer: OptimizerConfig, **kwargs):
+    def __init__(self, optimizer: OptimizerConfig, enable_cudnn_auto_tuner: bool = True, **kwargs):
         super().__init__(**kwargs)
         self._optimizer_config = optimizer
         self.optimizer: Optional[Optimizer] = None
+
+        if enable_cudnn_auto_tuner:
+            torch.backends.cudnn.benchmark = True
 
     def initialise(self, modules: Dict[str, Module]) -> None:
         try:
@@ -60,8 +63,6 @@ class Trainer(Module):
         self.optimizer.zero_grad(set_to_none=True)
 
 
-class TrainerConfig(ModuleConfig):
+class TrainerConfig(ModuleConfig, loaded_class=Trainer):
     optimizer: OptimizerConfig
-
-    def load(self, *args, **kwargs):
-        return Trainer(**dict(self))
+    enable_cudnn_auto_tuner: bool = True
