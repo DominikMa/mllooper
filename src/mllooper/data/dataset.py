@@ -4,7 +4,7 @@ from hashlib import blake2b
 from typing import Dict, Optional, Any, Union
 
 import torch
-from pydantic import BaseModel, confloat
+from pydantic import BaseModel, confloat, Field
 from torch.utils.data import DataLoader as TorchDataLoader
 from torch.utils.data import IterableDataset as TorchIterableDataset
 from torch.utils.data.dataloader import _BaseDataLoaderIter
@@ -25,6 +25,8 @@ class DataLoaderArgs(YAMLBaseConfig):
     prefetch_factor: int = 2
     persistent_workers: bool = False
 
+    def load(self, *args, **kwargs):
+        return DataLoaderArgs(**dict(self))
 
 @dataclass
 class DatasetState(State):
@@ -146,7 +148,7 @@ class Dataset(SeededModule, ABC):
 
 class DatasetConfig(SeededModuleConfig, ABC):
     train: bool = True
-    data_loader_args: Optional[DataLoaderArgs] = None
+    data_loader_args: DataLoaderArgs = Field(default_factory=DataLoaderArgs)
     dataset_type: Optional[str] = None
     device: str = 'cpu'
 
