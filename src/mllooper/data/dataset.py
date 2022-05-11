@@ -8,11 +8,14 @@ from pydantic import BaseModel, confloat
 from torch.utils.data import DataLoader as TorchDataLoader
 from torch.utils.data import IterableDataset as TorchIterableDataset
 from torch.utils.data.dataloader import _BaseDataLoaderIter
+from yaloader import YAMLBaseConfig
 
 from mllooper import State, SeededModule, SeededModuleConfig
 
 
-class DataLoaderArgs(BaseModel):
+class DataLoaderArgs(YAMLBaseConfig):
+    _yaml_tag = '!DataLoaderArgs'
+
     batch_size: Optional[int] = 1
     shuffle: bool = False
     num_workers: int = 0
