@@ -86,8 +86,9 @@ class Looper(Module):
             module: Module
             module.initialise(looper_modules)
 
-        # TODO do not add the module itself. Caller function should take care of that
-        # modules[self.name] = self
+        # Set to now here because now the __init__ of other modules is called.
+        # Otherwise the time loading the datasets, ect. will be included in the time
+        self._last_log_iteration_time = datetime.datetime.now()
 
     def teardown(self, state: State):
         """ Teardown all modules in the loop.
