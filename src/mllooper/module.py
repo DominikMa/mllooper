@@ -29,7 +29,7 @@ class Module(ABC):
 
         self.log_level = log_level
         self.log_time_delta = log_time_delta
-        self._last_log_time = datetime.now()
+        self._last_log_time = datetime.now() - log_time_delta
 
         self.logger = logging.getLogger(self.name)
         self.logger.setLevel(self.log_level)
