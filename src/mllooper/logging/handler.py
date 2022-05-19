@@ -57,9 +57,11 @@ class FileLogBaseConfig(LogHandlerConfig):
 
     @root_validator(pre=False)
     def check_log_dir_exists(cls, values):
+        if values.get('log_dir') is None or values.get('log_dir_exist_ok') is None or values.get('time_stamp') is None:
+            return values
         if values.get('log_dir_exist_ok') is True:
             return values
-        log_dir = values.get('log_dir') if values.get('time_stamp') is None else values.get('log_dir').joinpath(str(values.get('time_stamp')).replace(' ', '-'))
+        log_dir = values.get('log_dir').joinpath(str(values.get('time_stamp')).replace(' ', '-'))
         if log_dir.exists():
             values['time_stamp'] = values['time_stamp'].replace(microsecond=datetime.now().microsecond)
         return values
