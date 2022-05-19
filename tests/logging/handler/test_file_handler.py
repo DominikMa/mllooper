@@ -1,19 +1,20 @@
 import io
 import json
 import logging
+from datetime import datetime
 
 import numpy as np
 import torch.nn
 from PIL import Image
 
-from mllooper.logging.handler import FileLog
+from mllooper.logging.handler import FileLog, FileLogConfig
 from mllooper.logging.messages import BytesIOLogMessage, StringIOLogMessage
 
 
 def test_bytes_io_log_message(tmp_path):
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
-    file_log = FileLog(log_dir=tmp_path, time_stamp=None)
+    file_log = FileLog(log_dir=tmp_path, time_stamp=datetime.now().replace(microsecond=0))
 
     bytes_io = io.BytesIO()
     bytes_io.write(json.dumps({'test': 42}).encode('utf-8'))
@@ -22,7 +23,7 @@ def test_bytes_io_log_message(tmp_path):
         BytesIOLogMessage(bytes=bytes_io, name='testfile.json', step=0)
     )
 
-    with open(tmp_path.joinpath('testfile-0.json'), encoding='utf-8') as f:
+    with open(file_log.log_dir.joinpath('testfile-0.json'), encoding='utf-8') as f:
         test_data = json.load(f)
 
     assert test_data == {'test': 42}
@@ -31,7 +32,7 @@ def test_bytes_io_log_message(tmp_path):
 def test_torch_bytes_io_log_message(tmp_path):
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
-    file_log = FileLog(log_dir=tmp_path, time_stamp=None)
+    file_log = FileLog(log_dir=tmp_path, time_stamp=datetime.now().replace(microsecond=0))
 
     bytes_io = io.BytesIO()
 
@@ -44,7 +45,7 @@ def test_torch_bytes_io_log_message(tmp_path):
         BytesIOLogMessage(bytes=bytes_io, name='torch_state_dict.pth', step=42)
     )
 
-    loaded_torch_state_dict = torch.load(tmp_path.joinpath('torch_state_dict-42.pth'))
+    loaded_torch_state_dict = torch.load(file_log.log_dir.joinpath('torch_state_dict-42.pth'))
 
     for k in torch_state_dict:
         assert (torch_state_dict[k] == loaded_torch_state_dict[k]).all()
@@ -53,7 +54,7 @@ def test_torch_bytes_io_log_message(tmp_path):
 def test_pil_bytes_io_log_message(tmp_path):
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
-    file_log = FileLog(log_dir=tmp_path, time_stamp=None)
+    file_log = FileLog(log_dir=tmp_path, time_stamp=datetime.now().replace(microsecond=0))
 
     bytes_io = io.BytesIO()
 
@@ -63,7 +64,7 @@ def test_pil_bytes_io_log_message(tmp_path):
     logger.info(
         BytesIOLogMessage(bytes=bytes_io, name='test_image.png', step=None)
     )
-    loaded_test_image = np.array(Image.open(tmp_path.joinpath('test_image.png')))
+    loaded_test_image = np.array(Image.open(file_log.log_dir.joinpath('test_image.png')))
 
     assert np.all((test_image == loaded_test_image))
 
@@ -71,7 +72,7 @@ def test_pil_bytes_io_log_message(tmp_path):
 def test_string_io_log_message(tmp_path):
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
-    file_log = FileLog(log_dir=tmp_path, time_stamp=None)
+    file_log = FileLog(log_dir=tmp_path, time_stamp=datetime.now().replace(microsecond=0))
 
     string_io = io.StringIO()
     json.dump({'test': 42}, string_io)
@@ -80,7 +81,45 @@ def test_string_io_log_message(tmp_path):
         StringIOLogMessage(text=string_io, name='testfile.json', step=0)
     )
 
-    with open(tmp_path.joinpath('testfile-0.json'), encoding='utf-8') as f:
+    with open(file_log.log_dir.joinpath('testfile-0.json'), encoding='utf-8') as f:
         test_data = json.load(f)
 
     assert test_data == {'test': 42}
+
+
+def test_identical_file_log_timestamp(tmp_path):
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+
+    first_file_log: FileLog = FileLogConfig(log_dir=tmp_path).load()
+    first_file_log_log_dir = first_file_log.log_dir
+
+    first_string_io = io.StringIO()
+    json.dump({'test': 'first_file_log'}, first_string_io)
+    logger.info(StringIOLogMessage(text=first_string_io, name='testfile.json', step=0))
+    first_file_log.teardown(state=None)
+
+    with open(first_file_log_log_dir.joinpath('testfile-0.json'), encoding='utf-8') as f:
+        test_data = json.load(f)
+
+    assert test_data == {'test': 'first_file_log'}
+
+    second_file_log = FileLogConfig(log_dir=tmp_path).load()
+    second_file_log_log_dir = second_file_log.log_dir
+
+    second_string_io = io.StringIO()
+    json.dump({'test': 'second_file_log'}, second_string_io)
+    logger.info(StringIOLogMessage(text=second_string_io, name='testfile.json', step=0))
+    second_file_log.teardown(state=None)
+
+    with open(second_file_log_log_dir.joinpath('testfile-0.json'), encoding='utf-8') as f:
+        test_data = json.load(f)
+
+    assert test_data == {'test': 'second_file_log'}
+
+    # second log should not overwrite first log
+    with open(first_file_log_log_dir.joinpath('testfile-0.json'), encoding='utf-8') as f:
+        test_data = json.load(f)
+
+    assert test_data == {'test': 'first_file_log'}
+

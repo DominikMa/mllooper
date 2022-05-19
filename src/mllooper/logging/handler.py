@@ -42,14 +42,28 @@ class LogHandlerConfig(ModuleConfig):
 
 
 class FileLogBase(LogHandler):
-    def __init__(self, log_dir: Path, **kwargs):
+    def __init__(self, log_dir: Path, log_dir_exist_ok: bool = False, **kwargs):
         super().__init__(**kwargs)
-        self.log_dir = log_dir if self.time_stamp is None else log_dir.joinpath(str(self.time_stamp))
-        self.log_dir.mkdir(parents=True, exist_ok=True)
+        self.log_dir = log_dir if self.time_stamp is None else log_dir.joinpath(str(self.time_stamp).replace(' ', '-'))
+
+        try:
+            self.log_dir.mkdir(parents=True, exist_ok=log_dir_exist_ok)
+        except FileExistsError:
+            postfix = 2
+            while True:
+                log_dir = self.log_dir.with_name(f"{self.log_dir.name}-{postfix}")
+                try:
+                    log_dir.mkdir(parents=True, exist_ok=log_dir_exist_ok)
+                except FileExistsError:
+                    postfix += 1
+                    continue
+                self.log_dir = log_dir
+                break
 
 
 class FileLogBaseConfig(LogHandlerConfig):
     log_dir: Path
+    log_dir_exist_ok: bool = False
 
 
 class TextFileLog(FileLogBase):
