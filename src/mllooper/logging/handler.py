@@ -11,6 +11,7 @@ import numpy as np
 import torch
 import yaloader
 from PIL import Image
+from pydantic import validator, root_validator
 from torch.utils.tensorboard import SummaryWriter
 
 from mllooper import Module, ModuleConfig, State
@@ -20,9 +21,8 @@ from mllooper.logging.messages import TensorBoardLogMessage, TextLogMessage, Ima
 
 
 class LogHandler(Module):
-    def __init__(self, time_stamp: Optional[datetime], **kwargs):
+    def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.time_stamp = time_stamp
         self.handler: Optional[Handler] = None
 
     def set_handler(self, handler: Handler):
@@ -38,32 +38,31 @@ class LogHandler(Module):
 
 
 class LogHandlerConfig(ModuleConfig):
-    time_stamp: Optional[datetime] = datetime.now().replace(microsecond=0)
+    pass
 
 
 class FileLogBase(LogHandler):
-    def __init__(self, log_dir: Path, log_dir_exist_ok: bool = False, **kwargs):
+    def __init__(self, log_dir: Path, time_stamp: Optional[datetime], log_dir_exist_ok: bool = False, **kwargs):
         super().__init__(**kwargs)
+        self.time_stamp = time_stamp
         self.log_dir = log_dir if self.time_stamp is None else log_dir.joinpath(str(self.time_stamp).replace(' ', '-'))
 
-        try:
-            self.log_dir.mkdir(parents=True, exist_ok=log_dir_exist_ok)
-        except FileExistsError:
-            postfix = 2
-            while True:
-                log_dir = self.log_dir.with_name(f"{self.log_dir.name}-{postfix}")
-                try:
-                    log_dir.mkdir(parents=True, exist_ok=log_dir_exist_ok)
-                except FileExistsError:
-                    postfix += 1
-                    continue
-                self.log_dir = log_dir
-                break
+        self.log_dir.mkdir(parents=True, exist_ok=log_dir_exist_ok)
 
 
 class FileLogBaseConfig(LogHandlerConfig):
     log_dir: Path
+    time_stamp: Optional[datetime] = datetime.now().replace(microsecond=0)
     log_dir_exist_ok: bool = False
+
+    @root_validator(pre=False)
+    def check_log_dir_exists(cls, values):
+        if values.get('log_dir_exist_ok') is True:
+            return values
+        log_dir = values.get('log_dir') if values.get('time_stamp') is None else values.get('log_dir').joinpath(str(values.get('time_stamp')).replace(' ', '-'))
+        if log_dir.exists():
+            values['time_stamp'] = values['time_stamp'].replace(microsecond=datetime.now().microsecond)
+        return values
 
 
 class TextFileLog(FileLogBase):

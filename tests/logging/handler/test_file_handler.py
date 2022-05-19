@@ -91,7 +91,9 @@ def test_identical_file_log_timestamp(tmp_path):
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
 
-    first_file_log: FileLog = FileLogConfig(log_dir=tmp_path).load()
+    time_stamp = datetime.now().replace(microsecond=0)
+
+    first_file_log: FileLog = FileLogConfig(log_dir=tmp_path, time_stamp=time_stamp).load()
     first_file_log_log_dir = first_file_log.log_dir
 
     first_string_io = io.StringIO()
@@ -104,7 +106,7 @@ def test_identical_file_log_timestamp(tmp_path):
 
     assert test_data == {'test': 'first_file_log'}
 
-    second_file_log = FileLogConfig(log_dir=tmp_path).load()
+    second_file_log = FileLogConfig(log_dir=tmp_path, time_stamp=time_stamp).load()
     second_file_log_log_dir = second_file_log.log_dir
 
     second_string_io = io.StringIO()
