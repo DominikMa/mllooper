@@ -42,31 +42,65 @@ class LogHandlerConfig(ModuleConfig):
 
 
 class FileLogBase(LogHandler):
-    def __init__(self, log_dir: Path, time_stamp: Optional[datetime], log_dir_exist_ok: bool = False, **kwargs):
+    def __init__(self, log_dir: Path, log_dir_exist_ok: bool = False, create_log_dir: bool = True, **kwargs):
         super().__init__(**kwargs)
-        self.time_stamp = time_stamp
-        self.log_dir = log_dir if self.time_stamp is None else log_dir.joinpath(str(self.time_stamp).replace(' ', '-'))
+        self.log_dir = log_dir
 
-        self.log_dir.mkdir(parents=True, exist_ok=log_dir_exist_ok)
+        if create_log_dir:
+            self.log_dir.mkdir(parents=True, exist_ok=log_dir_exist_ok)
+        if not self.log_dir.exists():
+            raise RuntimeError
 
 
 class FileLogBaseConfig(LogHandlerConfig):
     log_dir: Path
-    time_stamp: Optional[datetime] = datetime.now().replace(microsecond=0)
     log_dir_exist_ok: bool = False
+    create_log_dir: bool = True
 
-    @root_validator(pre=False)
-    def check_log_dir_exists(cls, values):
-        if values.get('log_dir') is None or values.get('log_dir_exist_ok') is None or values.get('time_stamp') is None:
-            return values
-        if values.get('log_dir_exist_ok') is True:
-            return values
-        if isinstance(values.get('log_dir'), str):
-            values['log_dir'] = Path(values['log_dir'])
-        log_dir = values.get('log_dir').joinpath(str(values.get('time_stamp')).replace(' ', '-'))
-        if log_dir.exists():
-            values['time_stamp'] = values['time_stamp'].replace(microsecond=datetime.now().microsecond)
-        return values
+    time_stamp: Optional[datetime] = datetime.now().replace(microsecond=0)
+    _time_stamp: Optional[datetime] = None
+
+    def load(self, *args, **kwargs):
+        if not hasattr(self, '_loaded_class') or self._loaded_class is None:
+            raise NotImplementedError
+
+        data = dict(self)
+        data.pop('time_stamp')
+
+        log_dir = self.log_dir
+        if self.time_stamp is None:
+            if self.create_log_dir:
+                log_dir.mkdir(parents=True, exist_ok=self.log_dir_exist_ok)
+                data['create_log_dir'] = False
+            return self._loaded_class(**data)
+
+        # timestamp is fixed and dir created
+        if self._time_stamp is not None:
+            data['log_dir'] = log_dir.joinpath(str(self._time_stamp).replace(' ', '-'))
+            data['create_log_dir'] = False
+            return self._loaded_class(**data)
+
+        log_dir = self.log_dir.joinpath(str(self.time_stamp).replace(' ', '-'))
+        if not log_dir.exists():
+            if self.create_log_dir:
+                log_dir.mkdir(parents=True, exist_ok=self.log_dir_exist_ok)
+                data['create_log_dir'] = False
+            data['log_dir'] = log_dir
+            self.__class__._time_stamp = self.time_stamp
+            return self._loaded_class(**data)
+
+        while True:
+            time_stamp = self.time_stamp.replace(microsecond=datetime.now().microsecond)
+            log_dir = self.log_dir.joinpath(str(time_stamp).replace(' ', '-'))
+            if log_dir.exists():
+                continue
+            if self.create_log_dir:
+                log_dir.mkdir(parents=True, exist_ok=self.log_dir_exist_ok)
+                data['create_log_dir'] = False
+            data['log_dir'] = log_dir
+            self.__class__._time_stamp = time_stamp
+            return self._loaded_class(**data)
+
 
 
 class TextFileLog(FileLogBase):

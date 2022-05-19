@@ -14,7 +14,7 @@ from mllooper.logging.messages import BytesIOLogMessage, StringIOLogMessage
 def test_bytes_io_log_message(tmp_path):
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
-    file_log = FileLog(log_dir=tmp_path, time_stamp=datetime.now().replace(microsecond=0))
+    file_log = FileLog(log_dir=tmp_path, log_dir_exist_ok=True)
 
     bytes_io = io.BytesIO()
     bytes_io.write(json.dumps({'test': 42}).encode('utf-8'))
@@ -32,7 +32,7 @@ def test_bytes_io_log_message(tmp_path):
 def test_torch_bytes_io_log_message(tmp_path):
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
-    file_log = FileLog(log_dir=tmp_path, time_stamp=datetime.now().replace(microsecond=0))
+    file_log = FileLog(log_dir=tmp_path, log_dir_exist_ok=True)
 
     bytes_io = io.BytesIO()
 
@@ -54,7 +54,7 @@ def test_torch_bytes_io_log_message(tmp_path):
 def test_pil_bytes_io_log_message(tmp_path):
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
-    file_log = FileLog(log_dir=tmp_path, time_stamp=datetime.now().replace(microsecond=0))
+    file_log = FileLog(log_dir=tmp_path, log_dir_exist_ok=True)
 
     bytes_io = io.BytesIO()
 
@@ -72,7 +72,7 @@ def test_pil_bytes_io_log_message(tmp_path):
 def test_string_io_log_message(tmp_path):
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
-    file_log = FileLog(log_dir=tmp_path, time_stamp=datetime.now().replace(microsecond=0))
+    file_log = FileLog(log_dir=tmp_path, log_dir_exist_ok=True)
 
     string_io = io.StringIO()
     json.dump({'test': 42}, string_io)
@@ -119,9 +119,9 @@ def test_identical_file_log_timestamp(tmp_path):
 
     assert test_data == {'test': 'second_file_log'}
 
-    # second log should not overwrite first log
+    # second log SHOULD overwrite first log since they are in the same process
     with open(first_file_log_log_dir.joinpath('testfile-0.json'), encoding='utf-8') as f:
         test_data = json.load(f)
 
-    assert test_data == {'test': 'first_file_log'}
+    assert test_data == {'test': 'second_file_log'}
 
