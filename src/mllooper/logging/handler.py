@@ -9,15 +9,39 @@ from typing import Optional
 import coloredlogs
 import numpy as np
 import torch
-import yaloader
 from PIL import Image
-from pydantic import validator, root_validator
 from torch.utils.tensorboard import SummaryWriter
 
 from mllooper import Module, ModuleConfig, State
 from mllooper.logging.messages import TensorBoardLogMessage, TextLogMessage, ImageLogMessage, \
     HistogramLogMessage, PointCloudLogMessage, ScalarLogMessage, FigureLogMessage, ModelGraphLogMessage, \
     ModelLogMessage, ConfigLogMessage, BytesIOLogMessage, StringIOLogMessage
+
+_TIMESTAMP = None
+
+
+def get_not_existing_log_dir(log_dir: Path, timestamp: datetime, create_log_dir: bool = True) -> Path:
+    global _TIMESTAMP
+
+    if _TIMESTAMP is not None:
+        return log_dir.joinpath(str(_TIMESTAMP).replace(' ', '-'))
+
+    new_log_dir = log_dir.joinpath(str(timestamp).replace(' ', '-'))
+    if not new_log_dir.exists():
+        if create_log_dir:
+            new_log_dir.mkdir(parents=True, exist_ok=False)
+        _TIMESTAMP = timestamp
+        return new_log_dir
+
+    while True:
+        new_timestamp = timestamp.replace(microsecond=datetime.now().microsecond)
+        new_log_dir = log_dir.joinpath(str(new_timestamp).replace(' ', '-'))
+        if new_log_dir.exists():
+            continue
+        if create_log_dir:
+            new_log_dir.mkdir(parents=True, exist_ok=False)
+        _TIMESTAMP = timestamp
+        return new_log_dir
 
 
 class LogHandler(Module):
@@ -57,50 +81,31 @@ class FileLogBaseConfig(LogHandlerConfig):
     log_dir_exist_ok: bool = False
     create_log_dir: bool = True
 
-    time_stamp: Optional[datetime] = datetime.now().replace(microsecond=0)
-    _time_stamp: Optional[datetime] = None
+    timestamp: Optional[datetime] = datetime.now().replace(microsecond=0)
 
     def load(self, *args, **kwargs):
         if not hasattr(self, '_loaded_class') or self._loaded_class is None:
             raise NotImplementedError
 
         data = dict(self)
-        data.pop('time_stamp')
+        data.pop('timestamp')
 
         log_dir = self.log_dir
-        if self.time_stamp is None:
+        if self.timestamp is None:
             if self.create_log_dir:
                 log_dir.mkdir(parents=True, exist_ok=self.log_dir_exist_ok)
                 data['create_log_dir'] = False
             return self._loaded_class(**data)
 
-        # timestamp is fixed and dir created
-        if self._time_stamp is not None:
-            data['log_dir'] = log_dir.joinpath(str(self._time_stamp).replace(' ', '-'))
-            data['create_log_dir'] = False
-            return self._loaded_class(**data)
-
-        log_dir = self.log_dir.joinpath(str(self.time_stamp).replace(' ', '-'))
-        if not log_dir.exists():
-            if self.create_log_dir:
-                log_dir.mkdir(parents=True, exist_ok=self.log_dir_exist_ok)
-                data['create_log_dir'] = False
+        if self.log_dir_exist_ok:
+            log_dir = log_dir.joinpath(str(self.timestamp).replace(' ', '-'))
             data['log_dir'] = log_dir
-            self.__class__._time_stamp = self.time_stamp
             return self._loaded_class(**data)
 
-        while True:
-            time_stamp = self.time_stamp.replace(microsecond=datetime.now().microsecond)
-            log_dir = self.log_dir.joinpath(str(time_stamp).replace(' ', '-'))
-            if log_dir.exists():
-                continue
-            if self.create_log_dir:
-                log_dir.mkdir(parents=True, exist_ok=self.log_dir_exist_ok)
-                data['create_log_dir'] = False
-            data['log_dir'] = log_dir
-            self.__class__._time_stamp = time_stamp
-            return self._loaded_class(**data)
+        data['log_dir'] = get_not_existing_log_dir(log_dir, self.timestamp, self.create_log_dir)
+        data['create_log_dir'] = False
 
+        return self._loaded_class(**data)
 
 
 class TextFileLog(FileLogBase):

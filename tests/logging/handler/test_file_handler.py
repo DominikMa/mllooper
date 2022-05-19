@@ -7,6 +7,7 @@ import numpy as np
 import torch.nn
 from PIL import Image
 
+from mllooper.logging import handler
 from mllooper.logging.handler import FileLog, FileLogConfig
 from mllooper.logging.messages import BytesIOLogMessage, StringIOLogMessage
 
@@ -88,12 +89,13 @@ def test_string_io_log_message(tmp_path):
 
 
 def test_identical_file_log_timestamp(tmp_path):
+    old_timestamp = handler._TIMESTAMP
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
 
-    time_stamp = datetime.now().replace(microsecond=0)
+    timestamp = datetime.now().replace(microsecond=0)
 
-    first_file_log: FileLog = FileLogConfig(log_dir=tmp_path, time_stamp=time_stamp).load()
+    first_file_log: FileLog = FileLogConfig(log_dir=tmp_path, timestamp=timestamp).load()
     first_file_log_log_dir = first_file_log.log_dir
 
     first_string_io = io.StringIO()
@@ -106,7 +108,7 @@ def test_identical_file_log_timestamp(tmp_path):
 
     assert test_data == {'test': 'first_file_log'}
 
-    second_file_log = FileLogConfig(log_dir=tmp_path, time_stamp=time_stamp).load()
+    second_file_log = FileLogConfig(log_dir=tmp_path, timestamp=timestamp).load()
     second_file_log_log_dir = second_file_log.log_dir
 
     second_string_io = io.StringIO()
@@ -124,4 +126,50 @@ def test_identical_file_log_timestamp(tmp_path):
         test_data = json.load(f)
 
     assert test_data == {'test': 'second_file_log'}
+    handler._TIMESTAMP = old_timestamp
+
+
+def test_identical_file_log_timestamp_two_processes(tmp_path):
+    old_timestamp = handler._TIMESTAMP
+
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+
+    timestamp = datetime.now().replace(microsecond=0)
+
+    first_file_log: FileLog = FileLogConfig(log_dir=tmp_path, timestamp=timestamp).load()
+    first_file_log_log_dir = first_file_log.log_dir
+
+    first_string_io = io.StringIO()
+    json.dump({'test': 'first_file_log'}, first_string_io)
+    logger.info(StringIOLogMessage(text=first_string_io, name='testfile.json', step=0))
+    first_file_log.teardown(state=None)
+
+    with open(first_file_log_log_dir.joinpath('testfile-0.json'), encoding='utf-8') as f:
+        test_data = json.load(f)
+
+    assert test_data == {'test': 'first_file_log'}
+
+    # simulate second process
+    handler._TIMESTAMP = None
+
+    second_file_log = FileLogConfig(log_dir=tmp_path, timestamp=timestamp).load()
+    second_file_log_log_dir = second_file_log.log_dir
+
+    second_string_io = io.StringIO()
+    json.dump({'test': 'second_file_log'}, second_string_io)
+    logger.info(StringIOLogMessage(text=second_string_io, name='testfile.json', step=0))
+    second_file_log.teardown(state=None)
+
+    with open(second_file_log_log_dir.joinpath('testfile-0.json'), encoding='utf-8') as f:
+        test_data = json.load(f)
+
+    assert test_data == {'test': 'second_file_log'}
+
+    # second log SHOULD overwrite first log since they are in the same process
+    with open(first_file_log_log_dir.joinpath('testfile-0.json'), encoding='utf-8') as f:
+        test_data = json.load(f)
+
+    assert test_data == {'test': 'first_file_log'}
+    handler._TIMESTAMP = old_timestamp
 
