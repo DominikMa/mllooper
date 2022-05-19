@@ -61,6 +61,8 @@ class FileLogBaseConfig(LogHandlerConfig):
             return values
         if values.get('log_dir_exist_ok') is True:
             return values
+        if isinstance(values.get('log_dir'), str):
+            values['log_dir'] = Path(values['log_dir'])
         log_dir = values.get('log_dir').joinpath(str(values.get('time_stamp')).replace(' ', '-'))
         if log_dir.exists():
             values['time_stamp'] = values['time_stamp'].replace(microsecond=datetime.now().microsecond)
