@@ -40,7 +40,7 @@ def get_not_existing_log_dir(log_dir: Path, timestamp: datetime, create_log_dir:
             continue
         if create_log_dir:
             new_log_dir.mkdir(parents=True, exist_ok=False)
-        _TIMESTAMP = timestamp
+        _TIMESTAMP = new_timestamp
         return new_log_dir
 
 
