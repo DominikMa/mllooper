@@ -158,11 +158,11 @@ def run(config_paths: Tuple[Path], config_dirs: Tuple[Path], yaml_strings: Tuple
 
         YAMLConfigDumper.exclude_unset = False
         YAMLConfigDumper.exclude_defaults = False
-        config = yaml.dump(constructed_run, Dumper=YAMLConfigDumper)
+        config = yaml.dump(constructed_run, Dumper=YAMLConfigDumper, sort_keys=False)
         logger.info(ConfigLogMessage(name='full_config', config=config))
         YAMLConfigDumper.exclude_unset = True
         YAMLConfigDumper.exclude_defaults = True
-        config = yaml.dump(constructed_run, Dumper=YAMLConfigDumper)
+        config = yaml.dump(constructed_run, Dumper=YAMLConfigDumper, sort_keys=False)
         logger.info(ConfigLogMessage(name='config', config=config))
 
         loaded_run.run()
