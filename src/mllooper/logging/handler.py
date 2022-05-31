@@ -87,24 +87,33 @@ class FileLogBaseConfig(LogHandlerConfig):
         if not hasattr(self, '_loaded_class') or self._loaded_class is None:
             raise NotImplementedError
 
+        print(f"{self.__class__.__name__}: Enter load")
+
         data = dict(self)
-        data.pop('timestamp')
+        timestamp = data.pop('timestamp')
+        print(f"{self.__class__.__name__}: timestamp is {timestamp}")
 
         log_dir = self.log_dir
+        print(f"{self.__class__.__name__}: log_dir is {log_dir}")
         if self.timestamp is None:
+            print(f"{self.__class__.__name__}: Enter self.timestamp is None")
             if self.create_log_dir:
                 log_dir.mkdir(parents=True, exist_ok=self.log_dir_exist_ok)
                 data['create_log_dir'] = False
+            print(f"{self.__class__.__name__}: Create class with {data}")
             return self._loaded_class(**data)
 
         if self.log_dir_exist_ok:
             log_dir = log_dir.joinpath(str(self.timestamp).replace(' ', '-'))
             data['log_dir'] = log_dir
+            print(f"{self.__class__.__name__}: Create class with {data}")
             return self._loaded_class(**data)
 
+        print(f"{self.__class__.__name__}: Get non existing log dir with {log_dir} {timestamp} {self.create_log_dir}")
         data['log_dir'] = get_not_existing_log_dir(log_dir, self.timestamp, self.create_log_dir)
+        print(f"{self.__class__.__name__}: Got non existing log dir {data['log_dir']}")
         data['create_log_dir'] = False
-
+        print(f"{self.__class__.__name__}: Create class with {data}")
         return self._loaded_class(**data)
 
 
