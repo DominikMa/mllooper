@@ -1,7 +1,7 @@
 from abc import ABC
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, Optional, List
+from typing import Any, Dict, Optional, List, Union
 
 import torch
 from torch import nn
@@ -16,10 +16,14 @@ class ModelState(State):
 
 
 class Model(SeededModule, ABC):
-    def __init__(self, torch_model: nn.Module, module_load_file: Optional[Path] = None, device: str = 'cpu', **kwargs):
+    def __init__(self, torch_model: nn.Module, module_load_file: Optional[Path] = None,
+                 device: Union[str, List[str]] = 'cpu', **kwargs):
         super().__init__(**kwargs)
-        self.device = torch.device(device)
+        devices = device if isinstance(device, list) else [device]
+        self.devices = [torch.device(device) for device in devices]
+        self.device = self.devices[0]
         self.module = torch_model.to(self.device)
+        self._parallel_module = self.module if len(self.devices) == 1 else nn.DataParallel(self.module, device_ids=self.devices)
 
         if module_load_file:
             module_state_dict = torch.load(module_load_file, map_location=self.device)
@@ -35,7 +39,8 @@ class Model(SeededModule, ABC):
 
         self.module.train() if dataset_state.train else self.module.eval()
         with torch.set_grad_enabled(dataset_state.train):
-            module_output = self.module(module_input)
+            # module_output = self.module(module_input)
+            module_output = self._parallel_module(module_input)
 
         self.state.output = self.format_module_output(module_output)
         state.model_state = self.state
@@ -91,4 +96,4 @@ class Model(SeededModule, ABC):
 
 class ModelConfig(SeededModuleConfig):
     module_load_file: Optional[Path]
-    device: str = 'cpu'
+    device: Union[str, List[str]] = 'cpu'
