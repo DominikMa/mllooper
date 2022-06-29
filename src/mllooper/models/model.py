@@ -75,9 +75,10 @@ class Model(SeededModule, ABC):
 
     def state_dict(self) -> Dict[str, Any]:
         state_dict = super(Model, self).state_dict()
+        # TODO check copy of torch module, deepcopy?
         state_dict.update(
             device=str(self.device),
-            module_state_dict=self.module.state_dict(),
+            module_state_dict=self.module.state_dict().copy(),
             state=self.state
         )
         return state_dict
