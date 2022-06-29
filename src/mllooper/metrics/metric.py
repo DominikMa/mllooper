@@ -1,5 +1,6 @@
 import operator
 from abc import ABC, abstractmethod
+from collections import defaultdict, deque
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Optional, Any, Dict, Literal, List
@@ -321,6 +322,96 @@ class MeanMetricConfig(ScalarMetricConfig):
         config_data = dict(self)
         config_data['metric'] = config_data['metric'].load()
         return MeanMetric(**config_data)
+
+
+@dataclass
+class RunningMeanMetricState(MetricState):
+    output: Optional[Any] = None
+
+
+class RunningMeanMetric(ScalarMetric):
+    def __init__(self, max_len: int, metric: ScalarMetric, **kwargs):
+        name = kwargs.pop('name')
+        name = "Running Mean" if name is None else name
+        super().__init__(name=f"{name} {metric.name}", **kwargs)
+        self.max_len = max_len
+        self.metric = metric
+        self.state = RunningMeanMetricState()
+        self.deque_per_dataset = defaultdict(lambda: deque(maxlen=self.max_len))
+
+    def initialise(self, modules: Dict[str, 'Module']) -> None:
+        self.metric.initialise(modules)
+
+    def teardown(self, state: State) -> None:
+        self.metric.teardown(state)
+
+    def log(self, state: State) -> None:
+        super(RunningMeanMetric, self).log(state)
+        self.metric.log(state)
+
+    def _log(self, state: State) -> None:
+        looper_state: LooperState = state.looper_state
+        dataset_state: DatasetState = state.dataset_state
+
+        dataset_values: List[torch.Tensor] = list(self.deque_per_dataset[dataset_state.name])
+        if dataset_values is not None and len(dataset_values) > 0:
+            mean = torch.mean(torch.stack(dataset_values).squeeze())
+            self.logger.debug(ScalarLogMessage(
+                tag=f"{dataset_state.name}/{self.name}", step=looper_state.total_iteration,
+                scalar=float(mean.detach().cpu().item())
+            ))
+
+    def step(self, state: State) -> None:
+        dataset_state: DatasetState = state.dataset_state
+        self.state.output = None
+        self.state.running_mean = None
+
+        with torch.set_grad_enabled(dataset_state.train and self.requires_grad):
+            metric_output = self.calculate_metric(state)
+        self.state.output = metric_output
+        # Needed for logging in the metric itself
+        self.metric.state.output = metric_output
+
+        with torch.set_grad_enabled(False):
+            dataset_deque = self.deque_per_dataset[dataset_state.name]
+
+            dataset_deque.append(metric_output.detach())
+
+        setattr(state, self.name, self.state)
+
+    def calculate_metric(self, state: State) -> Any:
+        return self.metric.calculate_metric(state)
+
+    def state_dict(self) -> Dict[str, Any]:
+        state_dict = super(RunningMeanMetric, self).state_dict()
+        state_dict.update(
+            metric_state_dict=self.metric.state_dict(),
+            state=self.state
+        )
+        return state_dict
+
+    def load_state_dict(self, state_dict: Dict[str, Any], strict: bool = True) -> None:
+        metric_state_dict = state_dict.pop('metric_state_dict')
+        state = state_dict.pop('state')
+
+        super(RunningMeanMetric, self).load_state_dict(state_dict)
+
+        self.metric.load_state_dict(metric_state_dict)
+        self.state = state
+
+    @torch.no_grad()
+    def is_better(self, x, y) -> bool:
+        return self.metric.is_better(x, y)
+
+
+class RunningMeanMetricConfig(ScalarMetricConfig):
+    max_len: int
+    metric: ScalarMetricConfig
+
+    def load(self, *args, **kwargs):
+        config_data = dict(self)
+        config_data['metric'] = config_data['metric'].load()
+        return RunningMeanMetric(**config_data)
 
 
 @dataclass
