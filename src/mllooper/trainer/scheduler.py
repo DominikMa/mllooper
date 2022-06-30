@@ -42,9 +42,7 @@ class StepLR(Scheduler):
     def step(self, state: State) -> None:
         if self.step_test(state):
             self.lr_scheduler.step()
-            self.logger.info(TextLogMessage(
-                text=f"Set new learning rate to: {self.lr_scheduler.get_last_lr()}",
-            ))
+            self.logger.info(f"Set new learning rate to: {self.lr_scheduler.get_last_lr()}")
 
 
 class StepLRConfig(ModuleConfig, loaded_class=StepLR):
