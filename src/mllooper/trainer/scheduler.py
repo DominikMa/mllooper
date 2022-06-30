@@ -4,6 +4,7 @@ from typing import Dict, Optional
 from torch.optim import lr_scheduler, Optimizer
 
 from mllooper import Module, State, ModuleConfig
+from mllooper.logging.messages import TextLogMessage
 from mllooper.state_tests import StateTest, StateTestConfig
 from mllooper.trainer import Trainer
 
@@ -41,6 +42,9 @@ class StepLR(Scheduler):
     def step(self, state: State) -> None:
         if self.step_test(state):
             self.lr_scheduler.step()
+            self.logger.info(TextLogMessage(
+                text=f"Set new learning rate to: {self.lr_scheduler.get_last_lr()}",
+            ))
 
 
 class StepLRConfig(ModuleConfig, loaded_class=StepLR):
