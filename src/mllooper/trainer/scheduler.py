@@ -46,6 +46,7 @@ class StepLR(Scheduler):
 
 
 class StepLRConfig(ModuleConfig, loaded_class=StepLR):
+    name: str = 'Scheduler StepLR'
     gamma: float
     step_test: StateTestConfig
 
