@@ -10,6 +10,8 @@ from mllooper.metrics.metric import (
     MeanMetricState,
     MeanMetric,
     MeanMetricConfig,
+    RunningMeanMetric,
+    RunningMeanMetricConfig,
     MetricListState,
     MetricList,
     MetricListConfig,
