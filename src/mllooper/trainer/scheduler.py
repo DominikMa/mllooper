@@ -4,7 +4,6 @@ from typing import Dict, Optional
 from torch.optim import lr_scheduler, Optimizer
 
 from mllooper import Module, State, ModuleConfig
-from mllooper.logging.messages import TextLogMessage
 from mllooper.state_tests import StateTest, StateTestConfig
 from mllooper.trainer import Trainer
 
