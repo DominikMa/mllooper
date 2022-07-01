@@ -1,5 +1,5 @@
 import datetime
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 
 from mllooper import State, LooperState
 from mllooper.data import DatasetState
@@ -29,7 +29,7 @@ class DatasetIterationTestConfig(StateTestConfig, loaded_class=DatasetIterationT
     iterations_per_type: Dict[str, int]
 
 
-class LooperTotalIterationTest(StateTest):
+class LooperAllTotalIterationTest(StateTest):
     def __init__(self, iterations: int, **kwargs):
         super().__init__(**kwargs)
         self.iterations = iterations
@@ -44,9 +44,29 @@ class LooperTotalIterationTest(StateTest):
         return False
 
 
-class LooperTotalIterationTestConfig(StateTestConfig, loaded_class=LooperTotalIterationTest):
-    name: str = "Looper Total Iteration Test"
+class LooperAllTotalIterationTestConfig(StateTestConfig, loaded_class=LooperAllTotalIterationTest):
+    name: str = "Looper All Total Iteration Test"
     iterations: int
+
+
+class LooperAtTotalIterationTest(StateTest):
+    def __init__(self, iterations: List[int], **kwargs):
+        super().__init__(**kwargs)
+        self.iterations = iterations
+
+    def __call__(self, state: State):
+        if not hasattr(state, 'looper_state'):
+            return False
+        looper_state: LooperState = state.looper_state
+
+        if looper_state.total_iteration in self.iterations:
+            return True
+        return False
+
+
+class LooperAtTotalIterationTestConfig(StateTestConfig, loaded_class=LooperAtTotalIterationTest):
+    name: str = "Looper At Total Iteration Test"
+    iterations: List[int]
 
 
 class TimeDeltaTest(StateTest):
