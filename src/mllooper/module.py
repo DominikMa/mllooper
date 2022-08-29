@@ -31,7 +31,11 @@ class Module(ABC):
         self.log_time_delta = log_time_delta
         self._last_log_time = datetime.now() - log_time_delta
 
+        logger_with_same_name_exists = self.name in logging.Logger.manager.loggerDict
         self.logger = logging.getLogger(self.name)
+        if logger_with_same_name_exists:
+            self.logger.warning(f'A logger with the name {self.name} already exists. '
+                                f'This might lead to unpredictable behavior.')
         self.logger.setLevel(self.log_level)
 
     def initialise(self, modules: Dict[str, 'Module']) -> None:
