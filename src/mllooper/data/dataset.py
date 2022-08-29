@@ -28,12 +28,15 @@ class DataLoaderArgs(YAMLBaseConfig):
     def load(self, *args, **kwargs):
         return DataLoaderArgs(**dict(self))
 
+
 @dataclass
 class DatasetState(State):
     name: str
     train: bool
     type: Optional[str] = None
+    total_iteration: int = 0
     iteration: int = 0
+    total_epoch: int = 0
     epoch: int = 0
     data: Optional[Any] = None
 
@@ -69,6 +72,8 @@ class Dataset(SeededModule, ABC):
 
     def step(self, state: State) -> None:
         self.initialise_torch_data_loader()
+        self.state.iteration += 1
+        self.state.total_iteration += 1
 
         self.state.data = None
         try:
@@ -79,7 +84,6 @@ class Dataset(SeededModule, ABC):
             self._data_iterator = None
             raise
 
-        self.state.iteration += 1
         data = self.move_data_to_device(data)
 
         self.state.data = data
@@ -89,6 +93,7 @@ class Dataset(SeededModule, ABC):
         if self._data_iterator is None:
             _ = self.random.random()
             self.state.epoch += 1
+            self.state.total_epoch += 1
             self._data_iterator = iter(self.data_loader)
 
     def reinitialise_torch_data_loader(self):
