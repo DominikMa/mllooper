@@ -74,12 +74,12 @@ class DatasetMaxStateTest(StateTest):
 
 class DatasetStateTestConfig(StateTestConfig, loaded_class=DatasetMaxStateTest):
     name: str = "Dataset Max State Test"
-    iterations_per_name: Optional[Dict[str, int]] = None
-    iterations_per_type: Optional[Dict[str, int]] = None
+    iterations_per_name: Dict[str, int] = {}
+    iterations_per_type: Dict[str, int] = {}
     iterations: Optional[int] = None
 
-    epochs_per_name: Optional[Dict[str, int]] = None
-    epochs_per_type: Optional[Dict[str, int]] = None
+    epochs_per_name: Dict[str, int] = {}
+    epochs_per_type: Dict[str, int] = {}
     epochs: Optional[int] = None
 
 
