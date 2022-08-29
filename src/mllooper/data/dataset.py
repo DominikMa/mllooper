@@ -72,8 +72,6 @@ class Dataset(SeededModule, ABC):
 
     def step(self, state: State) -> None:
         self.initialise_torch_data_loader()
-        self.state.iteration += 1
-        self.state.total_iteration += 1
 
         self.state.data = None
         try:
@@ -83,6 +81,9 @@ class Dataset(SeededModule, ABC):
                 del self._data_iterator
             self._data_iterator = None
             raise
+
+        self.state.iteration += 1
+        self.state.total_iteration += 1
 
         data = self.move_data_to_device(data)
 

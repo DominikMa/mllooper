@@ -55,11 +55,11 @@ class DatasetMaxStateTest(StateTest):
             return False
         dataset_state: DatasetState = state.dataset_state
 
-        if dataset_state.name in self.iterations_per_name and dataset_state.iteration > self.iterations_per_name[dataset_state.name]:
+        if dataset_state.name in self.iterations_per_name and dataset_state.iteration >= self.iterations_per_name[dataset_state.name]:
             return True
-        if dataset_state.type in self.iterations_per_type and dataset_state.iteration > self.iterations_per_type[dataset_state.type]:
+        if dataset_state.type in self.iterations_per_type and dataset_state.iteration >= self.iterations_per_type[dataset_state.type]:
             return True
-        if self.iterations and dataset_state.iteration > self.iterations:
+        if self.iterations and dataset_state.iteration >= self.iterations:
             return True
 
         if dataset_state.name in self.epochs_per_name and dataset_state.epoch > self.epochs_per_name[dataset_state.name]:
