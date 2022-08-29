@@ -28,15 +28,21 @@ class DatasetLoader(SeededModule):
         self.current_dataset: Dataset = next(self.dataset_generator)
 
         self._consecutive_stop_iteration_counter = 0
+        self._consecutive_same_dataset_stop_iteration_counter = 0
 
     def step(self, state: State) -> None:
         self.state.iteration += 1
         state.dataset_loader_state = self.state
-        if self.state.next_dataset or any(map(lambda test: test(state), self.next_dataset_tests)):
-            self.current_dataset = next(self.dataset_generator)
-            self.state.next_dataset = False
 
         while True:
+            if (
+                    self.state.next_dataset or
+                    self._consecutive_same_dataset_stop_iteration_counter > 1 or
+                    any(map(lambda test: test(state), self.next_dataset_tests))
+            ):
+                self.current_dataset = next(self.dataset_generator)
+                self.state.next_dataset = False
+                self._consecutive_same_dataset_stop_iteration_counter = 0
             if (
                     (self.max_iterations and self.state.iteration > self.max_iterations) or
                     (self.max_epochs and self.state.epoch > self.max_epochs) or
@@ -51,10 +57,12 @@ class DatasetLoader(SeededModule):
             try:
                 self.current_dataset.step(state)
                 self._consecutive_stop_iteration_counter = 0
+                self._consecutive_same_dataset_stop_iteration_counter = 0
                 return
             except StopIteration:
                 self._consecutive_stop_iteration_counter += 1
-                self.current_dataset = next(self.dataset_generator)
+                self._consecutive_same_dataset_stop_iteration_counter += 1
+                self.current_dataset.reinitialise_torch_data_loader()
 
     def step_callback(self, state: State) -> None:
         self.current_dataset.step_callback(state)
@@ -67,6 +75,8 @@ class DatasetLoader(SeededModule):
         while True:
             self.state.epoch += 1
             for dataset in self.datasets.values():
+                dataset.state.iteration = 0
+                dataset.state.epoch = 0
                 dataset.initialise_torch_data_loader()
                 yield dataset
 

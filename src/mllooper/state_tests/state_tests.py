@@ -1,5 +1,6 @@
 import datetime
 from typing import Dict, Optional, List
+from warnings import warn
 
 from mllooper import State, LooperState
 from mllooper.data import DatasetState
@@ -8,6 +9,7 @@ from mllooper.state_tests import StateTest, StateTestConfig
 
 class DatasetIterationTest(StateTest):
     def __init__(self, iterations_per_type: Dict[str, int], **kwargs):
+        warn('DatasetIterationTest will be deprecated. Use DatasetMaxStateTest instead.', DeprecationWarning, stacklevel=2)
         super().__init__(**kwargs)
         self.iterations_per_type = iterations_per_type
 
@@ -27,6 +29,58 @@ class DatasetIterationTest(StateTest):
 class DatasetIterationTestConfig(StateTestConfig, loaded_class=DatasetIterationTest):
     name: str = "Dataset Iteration Test"
     iterations_per_type: Dict[str, int]
+
+
+class DatasetMaxStateTest(StateTest):
+    def __init__(
+            self,
+            iterations_per_name: Dict[str, int],
+            iterations_per_type: Dict[str, int],
+            epochs_per_name: Dict[str, int],
+            epochs_per_type: Dict[str, int],
+            iterations: Optional[int] = None,
+            epochs: Optional[int] = None,
+            **kwargs
+    ):
+        super().__init__(**kwargs)
+        self.iterations_per_name = iterations_per_name
+        self.iterations_per_type = iterations_per_type
+        self.iterations = iterations
+        self.epochs_per_name = epochs_per_name
+        self.epochs_per_type = epochs_per_type
+        self.epochs = epochs
+
+    def __call__(self, state: State):
+        if not hasattr(state, 'dataset_state'):
+            return False
+        dataset_state: DatasetState = state.dataset_state
+
+        if dataset_state.name in self.iterations_per_name and dataset_state.iteration > self.iterations_per_name[dataset_state.name]:
+            return True
+        if dataset_state.type in self.iterations_per_type and dataset_state.iteration > self.iterations_per_type[dataset_state.type]:
+            return True
+        if self.iterations and dataset_state.iteration > self.iterations:
+            return True
+
+        if dataset_state.name in self.epochs_per_name and dataset_state.epoch > self.epochs_per_name[dataset_state.name]:
+            return True
+        if dataset_state.type in self.epochs_per_type and dataset_state.epoch > self.epochs_per_type[dataset_state.type]:
+            return True
+        if self.epochs and dataset_state.epoch > self.epochs:
+            return True
+
+        return False
+
+
+class DatasetStateTestConfig(StateTestConfig, loaded_class=DatasetMaxStateTest):
+    name: str = "Dataset Max State Test"
+    iterations_per_name: Optional[Dict[str, int]] = None
+    iterations_per_type: Optional[Dict[str, int]] = None
+    iterations: Optional[int] = None
+
+    epochs_per_name: Optional[Dict[str, int]] = None
+    epochs_per_type: Optional[Dict[str, int]] = None
+    epochs: Optional[int] = None
 
 
 class LooperAllTotalIterationTest(StateTest):
