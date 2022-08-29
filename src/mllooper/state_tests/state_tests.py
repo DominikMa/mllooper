@@ -72,7 +72,7 @@ class DatasetMaxStateTest(StateTest):
         return False
 
 
-class DatasetStateTestConfig(StateTestConfig, loaded_class=DatasetMaxStateTest):
+class DatasetMaxStateTestConfig(StateTestConfig, loaded_class=DatasetMaxStateTest):
     name: str = "Dataset Max State Test"
     iterations_per_name: Dict[str, int] = {}
     iterations_per_type: Dict[str, int] = {}
