@@ -135,6 +135,19 @@ class ConsoleLog(LogHandler):
 
         self.set_handler(handler)
 
+    def set_handler(self, handler: Handler):
+        root_logger = logging.getLogger()
+        if any(map(lambda handler: isinstance(handler, ConsoleLog), root_logger.handlers)):
+            if self.handler is not None:
+                self.handler.close()
+                self.handler = None
+        elif self.handler is None:
+            self.handler = handler
+            logging.getLogger().addHandler(self.handler)
+
+    def teardown(self, state: State) -> None:
+        pass
+
 
 class ConsoleLogConfig(LogHandlerConfig, loaded_class=ConsoleLog):
     level: int = logging.WARNING
