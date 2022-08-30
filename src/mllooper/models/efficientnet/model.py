@@ -85,6 +85,7 @@ class EfficientNet(Model):
 
 
 class EfficientNetConfig(ModelConfig, loaded_class=EfficientNet):
+    name: str = 'EfficientNet'
     model: Literal['b0', 'b1']
     pretrained: bool = False
     in_channels: int = 3
