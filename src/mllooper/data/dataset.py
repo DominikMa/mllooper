@@ -45,7 +45,9 @@ class Dataset(SeededModule, ABC):
 
     def __init__(self, train: bool = True, data_loader_args: Optional[DataLoaderArgs] = None,
                  dataset_type: Optional[str] = None, device: str = 'cpu', **kwargs):
-        super().__init__(**kwargs)
+        name = kwargs.pop('name', None)
+        name = f"{name} {self.type}" if self.type is not None and name is not None else name
+        super().__init__(name=name, **kwargs)
         self.train = train
         self.type = dataset_type
         self.device = torch.device(device)
@@ -55,8 +57,7 @@ class Dataset(SeededModule, ABC):
         self._data_loader = None
         self._data_iterator: Optional[_BaseDataLoaderIter] = None
 
-        name = f"{self.name} {self.type}" if self.type is not None else self.name
-        self.state = DatasetState(name=name, train=train, type=self.type)
+        self.state = DatasetState(name=self.name, train=train, type=self.type)
 
     def __getitem__(self, index: int):
         raise NotImplementedError
