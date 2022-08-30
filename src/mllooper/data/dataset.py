@@ -45,11 +45,14 @@ class Dataset(SeededModule, ABC):
 
     def __init__(self, train: bool = True, data_loader_args: Optional[DataLoaderArgs] = None,
                  dataset_type: Optional[str] = None, device: str = 'cpu', **kwargs):
+
+        self.type = dataset_type
         name = kwargs.pop('name', None)
         name = f"{name} {self.type}" if self.type is not None and name is not None else name
+
         super().__init__(name=name, **kwargs)
+
         self.train = train
-        self.type = dataset_type
         self.device = torch.device(device)
 
         self.data_loader_args = data_loader_args if data_loader_args is not None else DataLoaderArgs()
