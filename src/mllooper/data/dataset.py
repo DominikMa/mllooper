@@ -97,6 +97,7 @@ class Dataset(SeededModule, ABC):
     def initialise_torch_data_loader(self):
         if self._data_iterator is None:
             _ = self.random.random()
+            self.logger.debug(f"Initialize dataset for epoch {self.state.total_epoch + 1}")
             self.state.epoch += 1
             self.state.total_epoch += 1
             self._data_iterator = iter(self.data_loader)

@@ -43,15 +43,18 @@ class DatasetLoader(SeededModule):
                 self.current_dataset = next(self.dataset_generator)
                 self.state.next_dataset = False
                 self._consecutive_same_dataset_stop_iteration_counter = 0
+
             if (
                     (self.max_iterations and self.state.iteration > self.max_iterations) or
                     (self.max_epochs and self.state.epoch > self.max_epochs) or
                     self._consecutive_stop_iteration_counter > len(self.datasets)
             ):
                 if hasattr(state, 'looper_state') and isinstance(state.looper_state, LooperState):
+                    self.logger.debug(f"Stop looper at iteration {state.looper_state.total_iteration}")
                     state.looper_state.stop_loop = True
                     return
                 else:
+                    self.logger.debug(f"Raise StopRun")
                     raise StopRun
 
             try:
@@ -60,6 +63,8 @@ class DatasetLoader(SeededModule):
                 self._consecutive_same_dataset_stop_iteration_counter = 0
                 return
             except StopIteration:
+                self.logger.debug(f"Finished dataset {self.current_dataset.name} "
+                                  f"after iteration {self.current_dataset.state.iteration}")
                 self._consecutive_stop_iteration_counter += 1
                 self._consecutive_same_dataset_stop_iteration_counter += 1
                 self.current_dataset.reinitialise_torch_data_loader()
@@ -74,10 +79,14 @@ class DatasetLoader(SeededModule):
     def _dataset_generator(self) -> Generator[Dataset, None, None]:
         while True:
             self.state.epoch += 1
+            self.logger.debug(f"Start epoch {self.state.epoch}")
             for dataset in self.datasets.values():
                 dataset.state.iteration = 0
                 dataset.state.epoch = 0
                 dataset.initialise_torch_data_loader()
+                self.logger.debug(f"Load dataset {dataset.name} "
+                                  f"(Total epoch {dataset.state.total_epoch}, "
+                                  f"iteration {dataset.state.total_iteration})")
                 yield dataset
 
 
