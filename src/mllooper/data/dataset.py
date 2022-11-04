@@ -12,6 +12,8 @@ from yaloader import YAMLBaseConfig
 
 from mllooper import State, SeededModule, SeededModuleConfig
 
+_LOGGED_NON_TENSOR_TYPES_GPU = set()
+
 
 class DataLoaderArgs(YAMLBaseConfig):
     _yaml_tag = '!DataLoaderArgs'
@@ -113,9 +115,10 @@ class Dataset(SeededModule, ABC):
             return data.to(self.device)
         elif isinstance(data, dict):
             for key, value in data.items():
-                if not isinstance(value, torch.Tensor):
+                if not isinstance(value, torch.Tensor) and type(value) not in _LOGGED_NON_TENSOR_TYPES_GPU:
                     self.logger.debug(f'Expected torch.Tensor for every key in the data dict, '
                                       f'but got {type(value)} for key {key}.')
+                    _LOGGED_NON_TENSOR_TYPES_GPU.add(type(value))
                     continue
                 data[key] = value.to(self.device)
             return data
