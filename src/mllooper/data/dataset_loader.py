@@ -38,7 +38,11 @@ class DatasetLoader(SeededModule):
             if (
                     self.state.next_dataset or
                     self._consecutive_same_dataset_stop_iteration_counter > 1 or
-                    any(map(lambda test: test(state), self.next_dataset_tests))
+                    (
+                        # Run next dataset tests only on first try of getting data
+                        self._consecutive_same_dataset_stop_iteration_counter == 0 and
+                        any(map(lambda test: test(state), self.next_dataset_tests))
+                    )
             ):
                 self.current_dataset = next(self.dataset_generator)
                 self.state.next_dataset = False
