@@ -95,7 +95,7 @@ class Looper(Module):
 
         :param State state: The final state
         """
-        for _, module in iterate_modules(self.modules, skip_references=True):
+        for _, module in iterate_modules(self.modules):
             module.teardown(self.inner_state)
 
     def step(self, state: State):
