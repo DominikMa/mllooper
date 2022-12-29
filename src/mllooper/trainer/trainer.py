@@ -57,6 +57,7 @@ class Trainer(Module):
 class TrainerConfig(ModuleConfig, loaded_class=Trainer):
     optimizer: OptimizerConfig
     enable_cudnn_auto_tuner: bool = True
+    enable_grad_scaler: bool = False
 
 
 class PrecisionAutoCast(Module):
@@ -64,15 +65,17 @@ class PrecisionAutoCast(Module):
         super().__init__(**kwargs)
 
         self._init_count = 0
+        self.initialised = False
         self.current_sub_step = 0
 
         self.autocast = torch.autocast(device_type=device_type)
 
     def initialise(self, modules: Dict[str, Module]) -> None:
         self._init_count += 1
+        self.initialised = True if self._init_count == 2 else False
 
     def step(self, state: State) -> None:
-        if self._init_count != 2:
+        if not self.initialised:
             raise RuntimeError()
 
         self.current_sub_step += 1
