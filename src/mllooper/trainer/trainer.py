@@ -43,7 +43,7 @@ class Trainer(Module):
             loss: torch.Tensor = loss_state.output
 
             if self.enable_grad_scaler:
-                self.grad_scaler.scale(loss).baclward()
+                self.grad_scaler.scale(loss).backward()
                 self.grad_scaler.step(self.optimizer)
                 self.grad_scaler.update()
             else:
