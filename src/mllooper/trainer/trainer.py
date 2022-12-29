@@ -1,4 +1,4 @@
-from typing import Dict, Optional
+from typing import Dict, Optional, Literal
 
 import torch
 from torch.optim import Optimizer
@@ -11,13 +11,19 @@ from mllooper.trainer.optimizer import OptimizerConfig
 
 
 class Trainer(Module):
-    def __init__(self, optimizer: OptimizerConfig, enable_cudnn_auto_tuner: bool = True, **kwargs):
+    def __init__(self, optimizer: OptimizerConfig, enable_cudnn_auto_tuner: bool = True,
+                 enable_grad_scaler: bool = False, **kwargs):
         super().__init__(**kwargs)
         self._optimizer_config = optimizer
         self.optimizer: Optional[Optimizer] = None
 
-        if enable_cudnn_auto_tuner:
+        self.enable_cudnn_auto_tuner = enable_cudnn_auto_tuner
+        self.enable_grad_scaler = enable_grad_scaler
+
+        if self.enable_cudnn_auto_tuner:
             torch.backends.cudnn.benchmark = True
+
+        self.grad_scaler = torch.cuda.amp.GradScaler() if self.enable_grad_scaler else None
 
     def initialise(self, modules: Dict[str, Module]) -> None:
         try:
@@ -35,8 +41,14 @@ class Trainer(Module):
         if dataset_state.train:
             loss_state: MetricState = state.loss_state
             loss: torch.Tensor = loss_state.output
-            loss.backward()
-            self.optimizer.step()
+
+            if self.enable_grad_scaler:
+                self.grad_scaler.scale(loss).baclward()
+                self.grad_scaler.step(self.optimizer)
+                self.grad_scaler.update()
+            else:
+                loss.backward()
+                self.optimizer.step()
 
     def step_callback(self, state: State) -> None:
         self.optimizer.zero_grad(set_to_none=True)
@@ -45,3 +57,35 @@ class Trainer(Module):
 class TrainerConfig(ModuleConfig, loaded_class=Trainer):
     optimizer: OptimizerConfig
     enable_cudnn_auto_tuner: bool = True
+
+
+class PrecisionAutoCast(Module):
+    def __init__(self, device_type: str, **kwargs):
+        super().__init__(**kwargs)
+
+        self._init_count = 0
+        self.current_sub_step = 0
+
+        self.autocast = torch.autocast(device_type=device_type)
+
+    def initialise(self, modules: Dict[str, Module]) -> None:
+        self._init_count += 1
+
+    def step(self, state: State) -> None:
+        if self._init_count != 2:
+            raise RuntimeError()
+
+        self.current_sub_step += 1
+        if self.current_sub_step == 1:
+            self.autocast.__enter__()
+        elif self.current_sub_step == 2:
+            self.autocast.__exit__(None, None, None)
+        else:
+            raise RuntimeError()
+
+    def step_callback(self, state: State) -> None:
+        self.current_sub_step = 0
+
+
+class PrecisionAutoCastConfig(ModuleConfig, loaded_class=PrecisionAutoCast):
+    device_type: Literal['cuda', 'cpu', 'xpu']
