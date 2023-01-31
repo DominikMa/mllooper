@@ -524,12 +524,11 @@ class Loss(ScalarMetric):
             for key in set(state.__dict__.keys()):
                 if key in keys_in_state_before_metric:
                     continue
+                metric_state: MetricState = state.__dict__.pop(key)
                 if output is None:
-                    metric_state: MetricState = state.__dict__.pop(key)
                     output = metric_state.output * weight
                 else:
-                    # TODO why is `.output` missing
-                    output += state.__dict__.pop(key) * weight
+                    output = output + metric_state.output * weight
                 weight_sum += weight
         output = output / weight_sum
         return output
