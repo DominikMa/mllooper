@@ -107,7 +107,7 @@ class Module(ABC):
         }
         return state_dict
 
-    def load_state_dict(self, state_dict: Dict[str, any], strict: bool = True) -> None:
+    def load_state_dict(self, state_dict: Dict[str, Any], strict: bool = True) -> None:
         """ Load the modules state from a dictionary.
 
         :param Dict[str, any] state_dict: The state dictionary to load
@@ -278,7 +278,7 @@ class ModuleList(Module):
         }
         return state_dict
 
-    def load_state_dict(self, state_dict: Dict[str, any], strict: bool = True):
+    def load_state_dict(self, state_dict: Dict[str, Any], strict: bool = True):
         name = full_name(self)
         if name not in state_dict.keys():
             raise ValueError(f"Expected the state dict to have a key '{name}' but it has not.")
