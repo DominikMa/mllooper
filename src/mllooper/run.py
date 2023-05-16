@@ -61,16 +61,18 @@ def import_module(module_name: str):
     # try to import as a known module
     try:
         import_as_known_module(module_name)
-    except ModuleNotFoundError:
-        pass
+    except ModuleNotFoundError as error:
+        if hasattr(error, 'name') and error.name is not None and error.name != module_name:
+            raise
     else:
         return
 
     # try to import as file or directory
     try:
         import_from_disk(module_name)
-    except ModuleNotFoundError:
-        pass
+    except ModuleNotFoundError as error:
+        if hasattr(error, 'name') and error.name is not None and error.name != module_name:
+            raise
     else:
         return
 
