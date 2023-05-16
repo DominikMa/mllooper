@@ -24,7 +24,7 @@ class DataLoaderArgs(YAMLBaseConfig):
     pin_memory: bool = False
     drop_last: bool = False
     timeout: float = 0
-    prefetch_factor: int = 2
+    prefetch_factor: Optional[int] = None
     persistent_workers: bool = False
 
     def load(self, *args, **kwargs):
