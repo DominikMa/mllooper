@@ -1,5 +1,5 @@
 from io import BytesIO, StringIO
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, Tuple, Literal, List
 
 import numpy as np
 import torch
@@ -142,6 +142,9 @@ class ModelGraphLogMessage(TensorBoardLogMessage):
         """Allow arbitrary types because `nn.Module` can not be checked"""
         arbitrary_types_allowed = True
 
+
+class TensorBoardAddCustomScalarsLogMessage(BaseModel):
+    layout: Dict[str, Dict[str, Tuple[Literal['Multiline', 'Margin'], List[str]]]]
 
 class ModelLogMessage(BaseModel):
     """Log message for a model"""

@@ -15,7 +15,7 @@ from torch.utils.tensorboard import SummaryWriter
 from mllooper import Module, ModuleConfig, State
 from mllooper.logging.messages import TensorBoardLogMessage, TextLogMessage, ImageLogMessage, \
     HistogramLogMessage, PointCloudLogMessage, ScalarLogMessage, FigureLogMessage, ModelGraphLogMessage, \
-    ModelLogMessage, ConfigLogMessage, BytesIOLogMessage, StringIOLogMessage
+    ModelLogMessage, ConfigLogMessage, BytesIOLogMessage, StringIOLogMessage, TensorBoardAddCustomScalarsLogMessage
 
 _TIMESTAMP = None
 
@@ -166,7 +166,10 @@ class TensorBoardHandler(Handler):
 
     def emit(self, record: LogRecord) -> None:
         # Skip if it isn't a subclass of `LogMessage`
-        if isinstance(record.msg, TensorBoardLogMessage):
+        if isinstance(record.msg, TensorBoardAddCustomScalarsLogMessage):
+            self.sw.add_custom_scalars(record.msg.layout)
+
+        elif isinstance(record.msg, TensorBoardLogMessage):
 
             tag = record.msg.tag if record.msg.tag else record.name
             step = record.msg.step if record.msg.step else 0
