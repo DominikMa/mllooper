@@ -215,14 +215,14 @@ class AveragedMetric(ScalarMetric):
         return self.metric.is_better(x, y)
 
 
-class AveragedMetricConfig(ScalarMetricConfig):
+class AveragedMetricConfig(ScalarMetricConfig, loaded_class=AveragedMetric):
     metric: ScalarMetricConfig
     avg_decay: float = 0.995
 
     def load(self, *args, **kwargs):
         config_data = dict(self)
         config_data['metric'] = config_data['metric'].load()
-        return AveragedMetric(**config_data)
+        return self._loaded_class(**config_data)
 
 
 @dataclass
