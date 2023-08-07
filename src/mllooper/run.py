@@ -6,17 +6,22 @@ import subprocess
 import sys
 from importlib.util import spec_from_file_location, module_from_spec, find_spec
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import Tuple
 
 import click
+import git
 import yaml
 from click import BadParameter
+from pip._internal import vcs
 from pydantic import ValidationError
 from yaloader import ConfigLoader, YAMLConfigDumper
 from yaml import MarkedYAMLError
 
 from mllooper import Module, ModuleConfig
 from mllooper.logging.messages import ConfigLogMessage
+
+TEMP_DIR = TemporaryDirectory(prefix='mllooper_tmp_')
 
 
 def install_package(package_name: str):
@@ -79,6 +84,41 @@ def import_module(module_name: str):
     raise ModuleNotFoundError(f"Could not import {module_name}")
 
 
+def git_import_module(module_git_url: str):
+    url, rev, user_pass = vcs.git.Git.get_url_rev_and_auth(f'git+{module_git_url}')
+    name = url.split('/')[-1].split('.')[0]
+
+    try:
+        rev, path = rev.split(':', 1)
+    except ValueError:
+        path = ''
+    rev = None if rev == '' else rev
+
+    clone_path = TemporaryDirectory(prefix=f"{name}_", dir=TEMP_DIR.name)
+    if rev is not None:
+        bare_repo = git.Repo.init(clone_path.name, bare=False)
+        origin = bare_repo.create_remote("origin", url=url)
+        origin.fetch(
+            refspec=rev,
+            depth=1
+        )
+        bare_repo.git.checkout(rev)
+    else:
+        git.Repo.clone_from(
+            url=url,
+            to_path=clone_path.name,
+            depth=1
+        )
+
+    import_path = Path(clone_path.name).joinpath(path)
+
+    # try to import as file or directory
+    try:
+        import_from_disk(str(import_path))
+    except ModuleNotFoundError as error:
+        raise ModuleNotFoundError(f"Could not import {module_git_url}: {error}") from error
+
+
 @click.group()
 def cli():
     pass
@@ -90,10 +130,12 @@ def cli():
 @click.option("-y", "--yaml", "yaml_strings", multiple=True, default=[], type=str)
 @click.option("-i", "--install", "install_packages", multiple=True, default=[])
 @click.option("-i", "--import", "import_modules", multiple=True, default=[])
+@click.option("-g", "--git-import", "git_import_modules", multiple=True, default=[])
 @click.option("--autoload/--no-autoload", "auto_load", default=False)
 @click.argument('run_config', type=str)
 def run(config_paths: Tuple[Path], config_dirs: Tuple[Path], yaml_strings: Tuple[str],
-        install_packages: Tuple[str], import_modules: Tuple[str], run_config: str, auto_load: bool):
+        install_packages: Tuple[str], import_modules: Tuple[str], git_import_modules: Tuple[str],
+        run_config: str, auto_load: bool):
 
     # install packages before importing modules
     for package in install_packages:
@@ -103,9 +145,16 @@ def run(config_paths: Tuple[Path], config_dirs: Tuple[Path], yaml_strings: Tuple
             raise BadParameter(f"{e}") from e
 
     # import modules before creating the loader
-    for module in import_modules:
+    for module_name in import_modules:
         try:
-            import_module(module)
+            import_module(module_name)
+        except ModuleNotFoundError as e:
+            raise BadParameter(f"{e}") from e
+
+    # import modules before creating the loader
+    for module_git_url in git_import_modules:
+        try:
+            git_import_module(module_git_url)
         except ModuleNotFoundError as e:
             raise BadParameter(f"{e}") from e
 
