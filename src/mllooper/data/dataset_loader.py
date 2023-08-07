@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from typing import Dict, Optional, List, Generator
 
+from yaloader import loads
+
 from mllooper import State, SeededModule, LooperState, SeededModuleConfig
 from mllooper.data.dataset import Dataset, DatasetConfig
 from mllooper.module import StopRun
@@ -94,7 +96,8 @@ class DatasetLoader(SeededModule):
                 yield dataset
 
 
-class DatasetLoaderConfig(SeededModuleConfig, loaded_class=DatasetLoader):
+@loads(DatasetLoader)
+class DatasetLoaderConfig(SeededModuleConfig):
     datasets: Dict[str, DatasetConfig]
     max_iterations: Optional[int] = None
     max_epochs: Optional[int] = None

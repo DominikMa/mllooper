@@ -2,6 +2,7 @@ from typing import Dict, Optional, Literal
 
 import torch
 from torch.optim import Optimizer
+from yaloader import loads
 
 from mllooper import Module, ModuleConfig, State
 from mllooper.data import DatasetState
@@ -54,7 +55,8 @@ class Trainer(Module):
         self.optimizer.zero_grad(set_to_none=True)
 
 
-class TrainerConfig(ModuleConfig, loaded_class=Trainer):
+@loads(Trainer)
+class TrainerConfig(ModuleConfig):
     optimizer: OptimizerConfig
     enable_cudnn_auto_tuner: bool = True
     enable_grad_scaler: bool = False
@@ -90,5 +92,6 @@ class PrecisionAutoCast(Module):
         self.current_sub_step = 0
 
 
-class PrecisionAutoCastConfig(ModuleConfig, loaded_class=PrecisionAutoCast):
+@loads(PrecisionAutoCast)
+class PrecisionAutoCastConfig(ModuleConfig):
     device_type: Literal['cuda', 'cpu', 'xpu']

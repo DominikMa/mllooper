@@ -2,6 +2,8 @@ import datetime
 from typing import Dict, Optional, List
 from warnings import warn
 
+from yaloader import loads
+
 from mllooper import State, LooperState
 from mllooper.data import DatasetState
 from mllooper.state_tests import StateTest, StateTestConfig
@@ -26,7 +28,8 @@ class DatasetIterationTest(StateTest):
         return False
 
 
-class DatasetIterationTestConfig(StateTestConfig, loaded_class=DatasetIterationTest):
+@loads(DatasetIterationTest)
+class DatasetIterationTestConfig(StateTestConfig):
     name: str = "Dataset Iteration Test"
     iterations_per_type: Dict[str, int]
 
@@ -72,7 +75,8 @@ class DatasetMaxStateTest(StateTest):
         return False
 
 
-class DatasetMaxStateTestConfig(StateTestConfig, loaded_class=DatasetMaxStateTest):
+@loads(DatasetMaxStateTest)
+class DatasetMaxStateTestConfig(StateTestConfig):
     name: str = "Dataset Max State Test"
     iterations_per_name: Dict[str, int] = {}
     iterations_per_type: Dict[str, int] = {}
@@ -98,7 +102,8 @@ class LooperAllTotalIterationTest(StateTest):
         return False
 
 
-class LooperAllTotalIterationTestConfig(StateTestConfig, loaded_class=LooperAllTotalIterationTest):
+@loads(LooperAllTotalIterationTest)
+class LooperAllTotalIterationTestConfig(StateTestConfig):
     name: str = "Looper All Total Iteration Test"
     iterations: int
 
@@ -118,7 +123,8 @@ class LooperAtTotalIterationTest(StateTest):
         return False
 
 
-class LooperAtTotalIterationTestConfig(StateTestConfig, loaded_class=LooperAtTotalIterationTest):
+@loads(LooperAtTotalIterationTest)
+class LooperAtTotalIterationTestConfig(StateTestConfig):
     name: str = "Looper At Total Iteration Test"
     iterations: List[int]
 
@@ -140,6 +146,7 @@ class TimeDeltaTest(StateTest):
         return False
 
 
-class TimeDeltaTestConfig(StateTestConfig, loaded_class=TimeDeltaTest):
+@loads(TimeDeltaTest)
+class TimeDeltaTestConfig(StateTestConfig):
     name: str = "Time Delta Test"
     time_delta: datetime.timedelta

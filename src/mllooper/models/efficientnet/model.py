@@ -5,6 +5,7 @@ import torchvision
 
 from torch import nn
 from torchvision.models import EfficientNet as TorchEfficientNet, EfficientNet_B0_Weights, EfficientNet_B1_Weights
+from yaloader import loads
 
 from mllooper.models import Model, ModelConfig
 
@@ -74,7 +75,8 @@ class EfficientNet(Model):
         super().__init__(torch_model, **kwargs)
 
 
-class EfficientNetConfig(ModelConfig, loaded_class=EfficientNet):
+@loads(EfficientNet)
+class EfficientNetConfig(ModelConfig):
     name: str = 'EfficientNet'
     model: Literal['b0', 'b1']
     pretrained: bool = False

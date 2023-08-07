@@ -4,7 +4,8 @@ from abc import ABC
 from datetime import timedelta, datetime
 from typing import Optional, Dict, Any, List
 
-from yaloader import YAMLBaseConfig
+from pydantic import ConfigDict
+from yaloader import YAMLBaseConfig, loads
 
 from mllooper import State
 from mllooper.utils import full_name
@@ -155,12 +156,15 @@ class Module(ABC):
         pass
 
 
+def _remove_tile(schema: Dict[str, Any]) -> None:
+    for prop in schema.get('properties', {}).values():
+        prop.pop('title', None)
+
+
 class ModuleConfig(YAMLBaseConfig, ABC):
-    class Config:
-        @staticmethod
-        def schema_extra(schema: Dict[str, Any], model) -> None:
-            for prop in schema.get('properties', {}).values():
-                prop.pop('title', None)
+    model_config = ConfigDict(
+        json_schema_extra=_remove_tile
+    )
 
     name: Optional[str] = None
     log_level: int = logging.INFO
@@ -170,10 +174,12 @@ class ModuleConfig(YAMLBaseConfig, ABC):
 class SeededModule(Module, ABC):
     def __init__(self, seed: Optional[int] = None, **kwargs):
         super().__init__(**kwargs)
+
+        if seed is None:
+            seed = random.randint(0, 9999999)
+            self.logger.warning(f"Seed of {self.name} is None, set randomly chosen to {seed}.")
         self.seed = seed
-        if self.seed is None:
-            self.seed = random.randint(0, 9999999)
-            self.logger.warning(f"Seed of {self.name} is None, set randomly chosen to {self.seed}.")
+
         self.random = random.Random(self.seed)
 
     def state_dict(self) -> Dict[str, Any]:
@@ -205,10 +211,9 @@ class NOP(Module):
         pass
 
 
+@loads(NOP)
 class NOPConfig(ModuleConfig):
-
-    def load(self, *args, **kwargs):
-        return NOP(**dict(self))
+    pass
 
 
 class ModuleList(Module):
@@ -293,10 +298,11 @@ class ModuleList(Module):
         super(ModuleList, self).load_state_dict(state_dict, strict)
 
 
+@loads(ModuleList)
 class ModuleListConfig(ModuleConfig):
     modules: List[ModuleConfig]
 
     def load(self, *args, **kwargs):
         config_data = dict(self)
         config_data['modules'] = list(map(lambda module_config: module_config.load(), config_data['modules']))
-        return ModuleList(**config_data)
+        return self._loaded_class(**config_data)

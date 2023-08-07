@@ -1,6 +1,7 @@
 from typing import Dict
 
 import pytest
+from yaloader import loads
 
 from mllooper import State, Module, ModuleConfig
 
@@ -32,7 +33,9 @@ def initialise_and_teardown_counter_class():
 
 @pytest.fixture
 def initialise_and_teardown_counter_class_config(initialise_and_teardown_counter_class):
-    class CounterClassConfig(ModuleConfig, loaded_class=initialise_and_teardown_counter_class):
+
+    @loads(initialise_and_teardown_counter_class)
+    class CounterClassConfig(ModuleConfig):
         pass
 
     return CounterClassConfig
