@@ -28,7 +28,7 @@ def install_package(package_name: str):
     try:
         subprocess.check_call([sys.executable, '-m', 'pip', 'install', '--force-reinstall', package_name])
     except subprocess.CalledProcessError as e:
-        raise RuntimeError(f"Could not install {package_name}")
+        raise RuntimeError(f"Could not install {package_name}: {e}")
 
 
 def is_valid_module_name(module_name: str):
