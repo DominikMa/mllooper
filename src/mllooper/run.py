@@ -196,27 +196,29 @@ def run(config_paths: Tuple[Path], config_dirs: Tuple[Path], yaml_strings: Tuple
         if not isinstance(constructed_run, Module):
             raise BadParameter(f"The run configuration RUN_CONFIG has to be a mllooper Module."
                                f"Got {type(constructed_run)} instead.")
-        constructed_run.run()
+        loaded_run = constructed_run
     else:
         if not isinstance(constructed_run, ModuleConfig):
             raise BadParameter(f"The run configuration RUN_CONFIG has to be a mllooper Module. "
                                f"Got {type(constructed_run)} instead.")
         loaded_run = constructed_run.load()
 
-        # Log config
-        logger = logging.getLogger('ML Looper')
-        logger.setLevel(logging.INFO)
+    # TODO add logging for loaded git modules
 
-        YAMLConfigDumper.exclude_unset = False
-        YAMLConfigDumper.exclude_defaults = False
-        config = yaml.dump(constructed_run, Dumper=YAMLConfigDumper, sort_keys=False)
-        logger.info(ConfigLogMessage(name='full_config', config=config))
-        YAMLConfigDumper.exclude_unset = True
-        YAMLConfigDumper.exclude_defaults = True
-        config = yaml.dump(constructed_run, Dumper=YAMLConfigDumper, sort_keys=False)
-        logger.info(ConfigLogMessage(name='config', config=config))
+    # Log config
+    logger = logging.getLogger('ML Looper')
+    logger.setLevel(logging.INFO)
 
-        loaded_run.run()
+    YAMLConfigDumper.exclude_unset = False
+    YAMLConfigDumper.exclude_defaults = False
+    config = yaml.dump(constructed_run, Dumper=YAMLConfigDumper, sort_keys=False)
+    logger.info(ConfigLogMessage(name='full_config', config=config))
+    YAMLConfigDumper.exclude_unset = True
+    YAMLConfigDumper.exclude_defaults = True
+    config = yaml.dump(constructed_run, Dumper=YAMLConfigDumper, sort_keys=False)
+    logger.info(ConfigLogMessage(name='config', config=config))
+
+    loaded_run.run()
 
 
 @cli.command()
