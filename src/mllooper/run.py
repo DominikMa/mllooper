@@ -128,7 +128,7 @@ def cli():
 @click.option("-c", "--config", "config_paths", multiple=True, default=[], type=Path)
 @click.option("-d", "--dir", "config_dirs", multiple=True, default=[], type=Path)
 @click.option("-y", "--yaml", "yaml_strings", multiple=True, default=[], type=str)
-@click.option("-i", "--install", "install_packages", multiple=True, default=[])
+@click.option("--install", "install_packages", multiple=True, default=[])
 @click.option("-i", "--import", "import_modules", multiple=True, default=[])
 @click.option("-g", "--git-import", "git_import_modules", multiple=True, default=[])
 @click.option("--autoload/--no-autoload", "auto_load", default=False)
