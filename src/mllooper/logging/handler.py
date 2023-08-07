@@ -11,6 +11,7 @@ import numpy as np
 import torch
 from PIL import Image
 from torch.utils.tensorboard import SummaryWriter
+from yaloader import loads
 
 from mllooper import Module, ModuleConfig, State
 from mllooper.logging.messages import TensorBoardLogMessage, TextLogMessage, ImageLogMessage, \
@@ -119,7 +120,8 @@ class TextFileLog(FileLogBase):
         self.set_handler(handler)
 
 
-class TextFileLogConfig(FileLogBaseConfig, loaded_class=TextFileLog):
+@loads(TextFileLog)
+class TextFileLogConfig(FileLogBaseConfig):
     level: int = logging.WARNING
 
 
@@ -149,7 +151,8 @@ class ConsoleLog(LogHandler):
         pass
 
 
-class ConsoleLogConfig(LogHandlerConfig, loaded_class=ConsoleLog):
+@loads(ConsoleLog)
+class ConsoleLogConfig(LogHandlerConfig):
     level: int = logging.WARNING
 
 
@@ -279,7 +282,8 @@ class TensorBoardLog(FileLogBase):
         self.set_handler(handler)
 
 
-class TensorBoardLogConfig(FileLogBaseConfig, loaded_class=TensorBoardLog):
+@loads(TensorBoardLog)
+class TensorBoardLogConfig(FileLogBaseConfig):
     pass
 
 
@@ -290,7 +294,8 @@ class FileLog(FileLogBase):
         self.set_handler(handler)
 
 
-class FileLogConfig(FileLogBaseConfig, loaded_class=FileLog):
+@loads(FileLog)
+class FileLogConfig(FileLogBaseConfig):
     pass
 
 
@@ -300,7 +305,8 @@ class MLTextFileLog(TextFileLog):
         self.handler.addFilter(TensorBoardLogFilter())
 
 
-class MLTextFileLogConfig(TextFileLogConfig, overwrite_tag=True, loaded_class=MLTextFileLog):
+@loads(MLTextFileLog, overwrite_tag=True)
+class MLTextFileLogConfig(TextFileLogConfig):
     _yaml_tag = "!TextFileLog"
 
 
@@ -310,7 +316,8 @@ class MLConsoleLog(ConsoleLog):
         self.handler.addFilter(TensorBoardLogFilter())
 
 
-class MLConsoleLogConfig(ConsoleLogConfig, overwrite_tag=True, loaded_class=MLConsoleLog):
+@loads(MLConsoleLog, overwrite_tag=True)
+class MLConsoleLogConfig(ConsoleLogConfig):
     _yaml_tag = "!ConsoleLog"
 
 

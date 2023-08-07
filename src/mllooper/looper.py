@@ -2,7 +2,8 @@ import datetime
 from dataclasses import dataclass
 from typing import Dict, Union, Any, Optional, Tuple
 
-from pydantic import Extra, root_validator, validator
+from pydantic import Extra, field_validator, model_validator
+from yaloader import loads
 
 from mllooper import Module, State, ModuleConfig
 from mllooper.utils import full_name
@@ -203,13 +204,14 @@ class Looper(Module):
         super(Looper, self).load_state_dict(state_dict, strict)
 
 
-class LooperConfig(ModuleConfig, extra=Extra.allow, loaded_class=Looper):
+@loads(Looper)
+class LooperConfig(ModuleConfig, extra=Extra.allow):
     modules: Dict[str, Union[ModuleConfig, str]] = {}
 
     def load(self, *args, **kwargs):
-        all_model_field_names = {field.name for field in self.__fields__.values()}
-        all_model_field_names.update({field.alias for field in self.__fields__.values()})
-        extra_keys = [value for value in self.dict() if value not in all_model_field_names]
+        all_model_field_names = {field_name for field_name in self.model_fields.keys()}
+        all_model_field_names.update({field.alias for field in self.model_fields.values()})
+        extra_keys = [value for value in self.model_dump() if value not in all_model_field_names]
 
         modules: Dict[str, Union[ModuleConfig, str]] = self.modules
 
@@ -231,10 +233,10 @@ class LooperConfig(ModuleConfig, extra=Extra.allow, loaded_class=Looper):
         config_data['modules'] = loaded_modules
         return self._loaded_class(**config_data)
 
-    @root_validator(pre=True)
+    @model_validator(mode='before')
     def put_extra_in_modules(cls, values: Dict[str, Any]) -> Dict[str, Any]:
-        all_model_field_names = {field.name for field in cls.__fields__.values()}
-        all_model_field_names.update({field.alias for field in cls.__fields__.values()})
+        all_model_field_names = {field_name for field_name in cls.model_fields.keys()}
+        all_model_field_names.update({field.alias for field in cls.model_fields.values()})
 
         extra_keys = [value for value in values if value not in all_model_field_names]
         assert set(extra_keys) == set(values).difference(all_model_field_names)
@@ -251,7 +253,7 @@ class LooperConfig(ModuleConfig, extra=Extra.allow, loaded_class=Looper):
 
         return values
 
-    @validator('modules')
+    @field_validator('modules')
     def check_references_are_included(cls, modules):
         module_config_keys = {k for k, v in modules.items() if isinstance(v, ModuleConfig)}
         references = {v for k, v in modules.items() if isinstance(v, str)}
@@ -296,6 +298,7 @@ class LooperIterationStop(Module):
         super(LooperIterationStop, self).load_state_dict(state_dict, strict)
 
 
-class LooperIterationStopConfig(ModuleConfig, loaded_class=LooperIterationStop):
+@loads(LooperIterationStop)
+class LooperIterationStopConfig(ModuleConfig):
     step_iteration_limit: Optional[int] = None
     total_iteration_limit: Optional[int] = None

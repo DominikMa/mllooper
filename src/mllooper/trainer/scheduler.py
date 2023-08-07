@@ -2,6 +2,7 @@ from abc import ABC
 from typing import Dict, Optional
 
 from torch.optim import lr_scheduler, Optimizer
+from yaloader import loads
 
 from mllooper import Module, State, ModuleConfig
 from mllooper.state_tests import StateTest, StateTestConfig
@@ -44,7 +45,8 @@ class StepLR(Scheduler):
             self.logger.info(f"Set new learning rate to: {self.lr_scheduler.get_last_lr()}")
 
 
-class StepLRConfig(ModuleConfig, loaded_class=StepLR):
+@loads(StepLR)
+class StepLRConfig(ModuleConfig):
     name: str = 'Scheduler StepLR'
     gamma: float
     step_test: StateTestConfig

@@ -6,6 +6,7 @@ from datetime import datetime
 from typing import Optional, Any, Dict, Literal, List
 
 import torch
+from yaloader import loads
 
 from mllooper import Module, State, ModuleConfig, LooperState
 from mllooper.data import DatasetState
@@ -215,7 +216,8 @@ class AveragedMetric(ScalarMetric):
         return self.metric.is_better(x, y)
 
 
-class AveragedMetricConfig(ScalarMetricConfig, loaded_class=AveragedMetric):
+@loads(AveragedMetric)
+class AveragedMetricConfig(ScalarMetricConfig):
     metric: ScalarMetricConfig
     avg_decay: float = 0.995
 

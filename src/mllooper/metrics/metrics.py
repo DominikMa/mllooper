@@ -1,4 +1,5 @@
 import torch
+from yaloader import loads
 
 from mllooper import State
 from mllooper.data import DatasetState
@@ -26,7 +27,8 @@ class CrossEntropyLoss(ScalarMetric):
         return x.mean() < y.mean()
 
 
-class CrossEntropyLossConfig(ScalarMetricConfig, loaded_class=CrossEntropyLoss):
+@loads(CrossEntropyLoss)
+class CrossEntropyLossConfig(ScalarMetricConfig):
     name: str = "CrossEntropyLoss"
 
 
@@ -50,7 +52,8 @@ class MSELoss(ScalarMetric):
         return x.mean() < y.mean()
 
 
-class MSELossConfig(ScalarMetricConfig, loaded_class=MSELoss):
+@loads(MSELoss)
+class MSELossConfig(ScalarMetricConfig):
     name: str = "MSELoss"
 
 
@@ -74,5 +77,6 @@ class MAELoss(ScalarMetric):
         return x.mean() < y.mean()
 
 
-class MAELossConfig(ScalarMetricConfig, loaded_class=MAELoss):
+@loads(MAELoss)
+class MAELossConfig(ScalarMetricConfig):
     name: str = "MAELoss"

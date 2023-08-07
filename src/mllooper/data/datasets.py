@@ -3,6 +3,7 @@ import string
 from typing import Tuple, Union, List
 
 import numpy as np
+from yaloader import loads
 
 from mllooper.data import PartitionedDataset, PartitionedDatasetConfig, IterableDataset
 
@@ -54,7 +55,8 @@ class AlwaysClassZeroDataset(PartitionedDataset):
         return len(self.data)
 
 
-class AlwaysClassZeroDatasetConfig(PartitionedDatasetConfig, loaded_class=AlwaysClassZeroDataset):
+@loads(AlwaysClassZeroDataset)
+class AlwaysClassZeroDatasetConfig(PartitionedDatasetConfig):
     nr_features: Union[int, Tuple[int, ...]] = 2
     nr_samples: int = 1000
 
@@ -69,7 +71,8 @@ class AlwaysClassZeroItDataset(AlwaysClassZeroDataset, IterableDataset):
         }
 
 
-class AlwaysClassZeroItDatasetConfig(AlwaysClassZeroDatasetConfig, loaded_class=AlwaysClassZeroItDataset):
+@loads(AlwaysClassZeroItDataset)
+class AlwaysClassZeroItDatasetConfig(AlwaysClassZeroDatasetConfig):
     pass
 
 
@@ -121,7 +124,8 @@ class RandomClassDataset(PartitionedDataset):
         return len(self.data)
 
 
-class RandomClassDatasetConfig(PartitionedDatasetConfig, loaded_class=RandomClassDataset):
+@loads(RandomClassDataset)
+class RandomClassDatasetConfig(PartitionedDatasetConfig):
     nr_features: Union[int, Tuple[int, ...]] = 2
     nr_classes: int = 2
     nr_samples: int = 1000
@@ -137,5 +141,6 @@ class RandomClassItDataset(RandomClassDataset, IterableDataset):
         }
 
 
-class RandomClassItDatasetConfig(RandomClassDatasetConfig, loaded_class=RandomClassItDataset):
+@loads(RandomClassItDataset)
+class RandomClassItDatasetConfig(RandomClassDatasetConfig):
     pass

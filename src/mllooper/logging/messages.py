@@ -4,7 +4,7 @@ from typing import Optional, Dict, Any, Tuple, Literal, List
 import numpy as np
 import torch
 from matplotlib import pyplot as plt
-from pydantic import validator, BaseModel
+from pydantic import validator, BaseModel, field_validator
 from torch import nn
 
 
@@ -52,7 +52,8 @@ class ImageLogMessage(TensorBoardLogMessage):
         arbitrary_types_allowed = True
 
     # noinspection PyArgumentList
-    @validator("image")
+    # TODO: check if values still work
+    @field_validator("image")
     def validate_image_data(cls, image: np.ndarray, values: Dict[str, Any]):
         """Validate that image data is between 0 and 255 and as `np.uin8`"""
         ignore_img_data = values.get("ignore_img_data", False)
@@ -83,7 +84,7 @@ class HistogramLogMessage(TensorBoardLogMessage):
         """Allow arbitrary types because `np.array` can not be checked"""
         arbitrary_types_allowed = True
 
-    @validator("array")
+    @field_validator("array")
     def validate_points_data(cls, array: np.ndarray):
         """Validate that points data is in shape [N, 3]"""
         shape = array.shape
@@ -100,7 +101,7 @@ class PointCloudLogMessage(TensorBoardLogMessage):
         """Allow arbitrary types because `torch.Tensor` can not be checked"""
         arbitrary_types_allowed = True
 
-    @validator("points")
+    @field_validator("points")
     def validate_points_data(cls, points: torch.Tensor):
         """Validate that points data is in shape [N, 3]"""
         shape = points.shape
@@ -108,7 +109,8 @@ class PointCloudLogMessage(TensorBoardLogMessage):
             raise ValueError("points array has to be of shape [N, 3]")
         return points
 
-    @validator("colors")
+    # TODO: check if values still work
+    @field_validator("colors")
     def validate_colors_data(cls, colors: Optional[torch.Tensor], values: Dict[str, Any]):
         """Validate that colors data is in shape [N, 3], shame shape as points
         and data is between 0 and 255 and as `np.uin8`

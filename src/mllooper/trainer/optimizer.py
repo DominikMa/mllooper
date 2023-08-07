@@ -2,14 +2,15 @@ from abc import ABC
 from typing import Optional, List, Tuple
 
 from torch.optim import SGD, Adam
-from yaloader import YAMLBaseConfig
+from yaloader import YAMLBaseConfig, loads
 
 
 class OptimizerConfig(YAMLBaseConfig, ABC):
     params: Optional[List] = None
 
 
-class SGDConfig(OptimizerConfig, loaded_class=SGD):
+@loads(SGD)
+class SGDConfig(OptimizerConfig):
     lr: float
     momentum: float = 0
     dampening: float = 0
@@ -17,7 +18,8 @@ class SGDConfig(OptimizerConfig, loaded_class=SGD):
     nesterov: bool = False
 
 
-class AdamConfig(OptimizerConfig, loaded_class=Adam):
+@loads(Adam)
+class AdamConfig(OptimizerConfig):
     lr: float
     betas: Tuple[float, float] = (0.9, 0.999)
     eps: float = 1e-8

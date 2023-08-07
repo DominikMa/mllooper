@@ -3,6 +3,7 @@ from dataclasses import dataclass
 
 logger = logging.getLogger('State')
 
+
 @dataclass
 class State:
     pass

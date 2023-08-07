@@ -1,5 +1,7 @@
 from typing import Dict, Optional
 
+from yaloader import loads
+
 from mllooper import Module, State, ModuleConfig, LooperState
 from mllooper.logging.messages import ModelLogMessage
 from mllooper.models import Model
@@ -47,7 +49,8 @@ class ModelLogger(Module):
         self.logger.info(ModelLogMessage(name=self.model.name, model=self.model.module, step=step))
 
 
-class ModelLoggerConfig(ModuleConfig, loaded_class=ModelLogger):
+@loads(ModelLogger)
+class ModelLoggerConfig(ModuleConfig):
     name: str = 'ModelLogger'
     add_step: bool = False
     log_at_teardown: bool = False
