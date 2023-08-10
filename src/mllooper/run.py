@@ -283,6 +283,18 @@ def run(ctx_object, run_config: str, auto_load: bool):
 
 
 @cli.command()
+@click.argument('config', type=str)
+@click.pass_obj
+def build(ctx_object, config: str):
+    config_loader: ConfigLoader = ctx_object['config_loader']
+    buffering_log_handler: BufferingLogHandler = ctx_object['buffering_log_handler']
+    buffering_log_handler.close()
+
+    config = load_config(config_loader, config, auto_load=False, final=False)
+    print(yaml.dump(config.model_dump(), Dumper=YAMLConfigDumper, sort_keys=False))
+
+
+@cli.command()
 @click.argument('tag', type=str)
 @click.option("--definitions/--no-definitions", "definitions", default=False)
 @click.pass_obj
