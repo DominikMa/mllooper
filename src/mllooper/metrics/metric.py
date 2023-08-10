@@ -86,6 +86,7 @@ class Metric(Module, ABC):
         raise NotImplementedError
 
 
+@loads(None)
 class MetricConfig(ModuleConfig):
     requires_grad: bool = False
 

@@ -161,6 +161,7 @@ def _remove_tile(schema: Dict[str, Any]) -> None:
         prop.pop('title', None)
 
 
+@loads(None)
 class ModuleConfig(YAMLBaseConfig, ABC):
     model_config = ConfigDict(
         json_schema_extra=_remove_tile
@@ -197,6 +198,7 @@ class SeededModule(Module, ABC):
         self.random.setstate(random_state)
 
 
+@loads(None)
 class SeededModuleConfig(ModuleConfig, ABC):
     seed: Optional[int] = None
 

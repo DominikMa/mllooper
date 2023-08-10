@@ -62,6 +62,7 @@ class LogHandler(Module):
         self.handler = None
 
 
+@loads(None)
 class LogHandlerConfig(ModuleConfig):
     pass
 
@@ -77,6 +78,7 @@ class FileLogBase(LogHandler):
             raise RuntimeError
 
 
+@loads(None)
 class FileLogBaseConfig(LogHandlerConfig):
     log_dir: Path
     log_dir_exist_ok: bool = False
