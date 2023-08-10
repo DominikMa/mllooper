@@ -317,13 +317,14 @@ class MeanMetric(ScalarMetric):
         return self.metric.is_better(x, y)
 
 
+@loads(MeanMetric)
 class MeanMetricConfig(ScalarMetricConfig):
     metric: ScalarMetricConfig
 
     def load(self, *args, **kwargs):
         config_data = dict(self)
         config_data['metric'] = config_data['metric'].load()
-        return MeanMetric(**config_data)
+        return self._loaded_class(**config_data)
 
 
 @dataclass
@@ -406,6 +407,7 @@ class RunningMeanMetric(ScalarMetric):
         return self.metric.is_better(x, y)
 
 
+@loads(RunningMeanMetric)
 class RunningMeanMetricConfig(ScalarMetricConfig):
     max_len: int
     metric: ScalarMetricConfig
@@ -413,7 +415,7 @@ class RunningMeanMetricConfig(ScalarMetricConfig):
     def load(self, *args, **kwargs):
         config_data = dict(self)
         config_data['metric'] = config_data['metric'].load()
-        return RunningMeanMetric(**config_data)
+        return self._loaded_class(**config_data)
 
 
 @dataclass
@@ -475,13 +477,14 @@ class MetricList(Module):
         raise NotImplementedError
 
 
+@loads(MetricList)
 class MetricListConfig(ModuleConfig):
     metrics: List[MetricConfig]
 
     def load(self, *args, **kwargs):
         config_data = dict(self)
         config_data['metrics'] = [metric_config.load() for metric_config in config_data['metrics']]
-        return MetricList(**config_data)
+        return self._loaded_class(**config_data)
 
 
 class Loss(ScalarMetric):
@@ -560,6 +563,7 @@ class Loss(ScalarMetric):
         raise NotImplementedError
 
 
+@loads(Loss)
 class LossConfig(MetricConfig):
     requires_grad: bool = True
     metrics: List[ScalarMetricConfig]
@@ -568,4 +572,4 @@ class LossConfig(MetricConfig):
     def load(self, *args, **kwargs):
         config_data = dict(self)
         config_data['metrics'] = [metric_config.load() for metric_config in config_data['metrics']]
-        return Loss(**config_data)
+        return self._loaded_class(**config_data)
