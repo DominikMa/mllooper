@@ -1,9 +1,10 @@
-﻿mllooper.NOPConfig
+﻿.. currentmodule:: mllooper
+
+mllooper.NOPConfig
 ==================
 
-.. currentmodule:: mllooper
 
-.. autopydantic_model:: NOPConfig
+.. autoclass:: NOPConfig
    :members:
    :show-inheritance:
-   :inherited-members: BaseModel
+

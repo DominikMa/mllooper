@@ -1,17 +1,15 @@
 <!doctype html>
-<html class="no-js">
+<html class="no-js" lang="en">
   <head><meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
     <meta name="color-scheme" content="light dark"><link rel="index" title="Index" href="../../genindex.html" /><link rel="search" title="Search" href="../../search.html" />
 
-    <meta name="generator" content="sphinx-4.4.0, furo 2022.02.14.1"/>
-        <title>mllooper.module - MLLooper 0.0.2 documentation</title>
+    <!-- Generated with Sphinx 5.3.0 and Furo 2023.05.20 -->
+        <title>mllooper.module - MLLooper 1.0.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
-    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?digest=a8f031f701c6af50c9919b48f173a5785af06fac" />
-    <link rel="stylesheet" type="text/css" href="../../_static/autodoc_pydantic.css" />
-    <link rel="stylesheet" type="text/css" href="../../_static/togglebutton.css" />
-    <link rel="stylesheet" type="text/css" href="../../_static/mystnb.css" />
-    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?digest=25ceb02ed1c46dc30f2321ff83e92799f69dfdb9" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo.css?digest=e6660623a769aa55fea372102b9bf3151b292993" />
+    <link rel="stylesheet" type="text/css" href="../../_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/styles/furo-extensions.css?digest=30d1aed668e5c3a91c3e3bf6a60b675221979f0e" />
     
     
 
@@ -22,24 +20,28 @@
   --color-code-foreground: black;
   
   }
-  body[data-theme="dark"] {
-    --color-code-background: #202020;
-  --color-code-foreground: #d0d0d0;
-  
-  }
-  @media (prefers-color-scheme: dark) {
-    body:not([data-theme="light"]) {
+  @media not print {
+    body[data-theme="dark"] {
       --color-code-background: #202020;
   --color-code-foreground: #d0d0d0;
   
     }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
   }
 </style></head>
   <body>
+    
     <script>
       document.body.dataset.theme = localStorage.getItem("theme") || "auto";
     </script>
     
+
 <svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
   <symbol id="svg-toc" viewBox="0 0 24 24">
     <title>Contents</title>
@@ -121,7 +123,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../../index.html"><div class="brand">MLLooper 0.0.2 documentation</div></a>
+      <a href="../../index.html"><div class="brand">MLLooper 1.0.0 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -144,10 +146,10 @@
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../../index.html">
   
   
-  <span class="sidebar-brand-text">MLLooper 0.0.2 documentation</span>
+  <span class="sidebar-brand-text">MLLooper 1.0.0 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../../search.html" role="search">
-  <input class="sidebar-search" placeholder=Search name="q" aria-label="Search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
   <input type="hidden" name="check_keywords" value="yes">
   <input type="hidden" name="area" value="default">
 </form>
@@ -170,7 +172,14 @@
   <div class="main">
     <div class="content">
       <div class="article-container">
-        <div class="content-icon-container"><div class="theme-toggle-container theme-toggle-content">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          <div class="theme-toggle-container theme-toggle-content">
             <button class="theme-toggle">
               <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
               <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
@@ -191,7 +200,8 @@
 <span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">timedelta</span><span class="p">,</span> <span class="n">datetime</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">List</span>
 
-<span class="kn">from</span> <span class="nn">yaloader</span> <span class="kn">import</span> <span class="n">YAMLBaseConfig</span>
+<span class="kn">from</span> <span class="nn">pydantic</span> <span class="kn">import</span> <span class="n">ConfigDict</span>
+<span class="kn">from</span> <span class="nn">yaloader</span> <span class="kn">import</span> <span class="n">YAMLBaseConfig</span><span class="p">,</span> <span class="n">loads</span>
 
 <span class="kn">from</span> <span class="nn">mllooper</span> <span class="kn">import</span> <span class="n">State</span>
 <span class="kn">from</span> <span class="nn">mllooper.utils</span> <span class="kn">import</span> <span class="n">full_name</span>
@@ -216,13 +226,17 @@
 
         <span class="bp">self</span><span class="o">.</span><span class="n">log_level</span> <span class="o">=</span> <span class="n">log_level</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">log_time_delta</span> <span class="o">=</span> <span class="n">log_time_delta</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_last_log_time</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_last_log_time</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span> <span class="o">-</span> <span class="n">log_time_delta</span>
 
+        <span class="n">logger_with_same_name_exists</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="ow">in</span> <span class="n">logging</span><span class="o">.</span><span class="n">Logger</span><span class="o">.</span><span class="n">manager</span><span class="o">.</span><span class="n">loggerDict</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">logger_with_same_name_exists</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;A logger with the name </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s1"> already exists. &#39;</span>
+                                <span class="sa">f</span><span class="s1">&#39;This might lead to unpredictable behavior.&#39;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">log_level</span><span class="p">)</span>
 
-<div class="viewcode-block" id="Module.initialise"><a class="viewcode-back" href="../../generated/mllooper.Module.html#mllooper.Module.initialise">[docs]</a>    <span class="k">def</span> <span class="nf">initialise</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">modules</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="s1">'Module'</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="sd">""" Perform initialization steps of the module.</span>
+<div class="viewcode-block" id="Module.initialise"><a class="viewcode-back" href="../../generated/mllooper.Module.html#mllooper.Module.initialise">[docs]</a>    <span class="k">def</span> <span class="nf">initialise</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">modules</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="s1">&#39;Module&#39;</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Perform initialization steps of the module.</span>
 
 <span class="sd">        This might be needed to preform initialization steps that rely on other modules.</span>
 <span class="sd">        The method receives a dictionary with other already initialised modules.</span>
@@ -234,33 +248,33 @@
 <span class="sd">        If this is not the case use :meth:`self.__init__`.</span>
 
 <span class="sd">        :param Dict[str, Module] modules: Dictionary of other modules which are already initialised</span>
-<span class="sd">        """</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">pass</span></div>
 
 <div class="viewcode-block" id="Module.teardown"><a class="viewcode-back" href="../../generated/mllooper.Module.html#mllooper.Module.teardown">[docs]</a>    <span class="k">def</span> <span class="nf">teardown</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="n">State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="sd">""" Perform teardown steps of the module.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Perform teardown steps of the module.</span>
 
 <span class="sd">        After calling no more calls to :meth:`mllooper.module.Module.step` should be made.</span>
 <span class="sd">        The provided state should not be modified.</span>
 
 <span class="sd">        :param State state: The final state</span>
-<span class="sd">        """</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">pass</span></div>
 
 <div class="viewcode-block" id="Module.step"><a class="viewcode-back" href="../../generated/mllooper.Module.html#mllooper.Module.step">[docs]</a>    <span class="k">def</span> <span class="nf">step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="n">State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="sd">""" Perform a step of the module on the state.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Perform a step of the module on the state.</span>
 
 <span class="sd">        :param State state: The current state</span>
-<span class="sd">        """</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">pass</span></div>
 
 <div class="viewcode-block" id="Module.run"><a class="viewcode-back" href="../../generated/mllooper.Module.html#mllooper.Module.run">[docs]</a>    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">State</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">State</span><span class="p">:</span>
-        <span class="sd">""" Initialise all modules, perform a step and teardown all modules.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Initialise all modules, perform a step and teardown all modules.</span>
 
 <span class="sd">        :param Optional[State] state: A initial state to run on, defaults to None</span>
 <span class="sd">        :return: The resulting state of the run</span>
 <span class="sd">        :rtype: State</span>
-<span class="sd">        """</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">state</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">state</span> <span class="o">=</span> <span class="n">State</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">initialise</span><span class="p">(</span><span class="n">modules</span><span class="o">=</span><span class="p">{})</span>
@@ -269,80 +283,85 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">step_callback</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
         <span class="k">except</span> <span class="p">(</span><span class="n">StopStep</span><span class="p">,</span> <span class="n">StopRun</span><span class="p">)</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="si">}</span><span class="s2"> was raised."</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="si">}</span><span class="s2"> was raised.&quot;</span><span class="p">)</span>
         <span class="k">finally</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">teardown</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">state</span></div>
 
 <div class="viewcode-block" id="Module.state_dict"><a class="viewcode-back" href="../../generated/mllooper.Module.html#mllooper.Module.state_dict">[docs]</a>    <span class="k">def</span> <span class="nf">state_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
-        <span class="sd">""" Return the state of the module as dictionary.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Return the state of the module as dictionary.</span>
 
 <span class="sd">        All items of the dictionary should be serializable by pickle.</span>
 
 <span class="sd">        :return: The modules current state as dictionary</span>
 <span class="sd">        :rtype: Dict[str, Any]</span>
-<span class="sd">        """</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">state_dict</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="s1">'name'</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-            <span class="s1">'log_level'</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">log_level</span><span class="p">,</span>
-            <span class="s1">'log_time_delta'</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">log_time_delta</span><span class="p">,</span>
-            <span class="s1">'_last_log_time'</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_last_log_time</span><span class="p">,</span>
+            <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+            <span class="s1">&#39;log_level&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">log_level</span><span class="p">,</span>
+            <span class="s1">&#39;log_time_delta&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">log_time_delta</span><span class="p">,</span>
+            <span class="s1">&#39;_last_log_time&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_last_log_time</span><span class="p">,</span>
         <span class="p">}</span>
         <span class="k">return</span> <span class="n">state_dict</span></div>
 
-<div class="viewcode-block" id="Module.load_state_dict"><a class="viewcode-back" href="../../generated/mllooper.Module.html#mllooper.Module.load_state_dict">[docs]</a>    <span class="k">def</span> <span class="nf">load_state_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">any</span><span class="p">],</span> <span class="n">strict</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="sd">""" Load the modules state from a dictionary.</span>
+<div class="viewcode-block" id="Module.load_state_dict"><a class="viewcode-back" href="../../generated/mllooper.Module.html#mllooper.Module.load_state_dict">[docs]</a>    <span class="k">def</span> <span class="nf">load_state_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">strict</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Load the modules state from a dictionary.</span>
 
 <span class="sd">        :param Dict[str, any] state_dict: The state dictionary to load</span>
 <span class="sd">        :param bool strict: If true rise an error on missing or additional keys in the state dict.</span>
 <span class="sd">                       If false these keys will be ignored.</span>
-<span class="sd">        """</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">state_dict</span><span class="p">[</span><span class="s1">'name'</span><span class="p">]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">log_level</span> <span class="o">=</span> <span class="n">state_dict</span><span class="p">[</span><span class="s1">'log_level'</span><span class="p">]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">log_level</span> <span class="o">=</span> <span class="n">state_dict</span><span class="p">[</span><span class="s1">'log_level'</span><span class="p">]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">log_time_delta</span> <span class="o">=</span> <span class="n">state_dict</span><span class="p">[</span><span class="s1">'log_time_delta'</span><span class="p">]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_last_log_time</span> <span class="o">=</span> <span class="n">state_dict</span><span class="p">[</span><span class="s1">'_last_log_time'</span><span class="p">]</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">state_dict</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log_level</span> <span class="o">=</span> <span class="n">state_dict</span><span class="p">[</span><span class="s1">&#39;log_level&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log_level</span> <span class="o">=</span> <span class="n">state_dict</span><span class="p">[</span><span class="s1">&#39;log_level&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">log_time_delta</span> <span class="o">=</span> <span class="n">state_dict</span><span class="p">[</span><span class="s1">&#39;log_time_delta&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_last_log_time</span> <span class="o">=</span> <span class="n">state_dict</span><span class="p">[</span><span class="s1">&#39;_last_log_time&#39;</span><span class="p">]</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">log_level</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Module.step_callback"><a class="viewcode-back" href="../../generated/mllooper.Module.html#mllooper.Module.step_callback">[docs]</a>    <span class="k">def</span> <span class="nf">step_callback</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="n">State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="sd">""" Callback which should be called after a single step of all modules.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Callback which should be called after a single step of all modules.</span>
 
 <span class="sd">        :param State state: The current state</span>
-<span class="sd">        """</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">pass</span></div>
 
-<div class="viewcode-block" id="Module.log"><a class="viewcode-back" href="../../generated/mllooper.Module.html#mllooper.Module.log">[docs]</a>    <span class="k">def</span> <span class="nf">log</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="n">State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="sd">""" Log information from the module.</span>
+<div class="viewcode-block" id="Module.log"><a class="viewcode-back" href="../../generated/mllooper.Module.html#mllooper.Module.log">[docs]</a>    <span class="k">def</span> <span class="nf">log</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="n">State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Log information from the module.</span>
 
 <span class="sd">        The logic for logging should be implemented in :meth:`mllooper.module.Module._log`</span>
 
 <span class="sd">        :param State state: The current state</span>
-<span class="sd">        """</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">now</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_last_log_time</span> <span class="ow">and</span> <span class="n">now</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_last_log_time</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">log_time_delta</span><span class="p">:</span>
-            <span class="k">return</span>
+            <span class="k">return</span> <span class="kc">False</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_last_log_time</span> <span class="o">=</span> <span class="n">now</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">_log</span><span class="p">(</span><span class="n">state</span><span class="p">)</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_log</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+        <span class="k">return</span> <span class="kc">True</span></div>
 
     <span class="k">def</span> <span class="nf">_log</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="n">State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="sd">""" Log information from the module.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Log information from the module.</span>
 
 <span class="sd">        The state should not be changed while logging.</span>
 
 <span class="sd">        :param State state: The current state</span>
-<span class="sd">        """</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">pass</span></div>
 
 
-<div class="viewcode-block" id="ModuleConfig"><a class="viewcode-back" href="../../generated/mllooper.ModuleConfig.html#mllooper.ModuleConfig">[docs]</a><span class="k">class</span> <span class="nc">ModuleConfig</span><span class="p">(</span><span class="n">YAMLBaseConfig</span><span class="p">,</span> <span class="n">ABC</span><span class="p">):</span>
-    <span class="k">class</span> <span class="nc">Config</span><span class="p">:</span>
-        <span class="nd">@staticmethod</span>
-        <span class="k">def</span> <span class="nf">schema_extra</span><span class="p">(</span><span class="n">schema</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">model</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">for</span> <span class="n">prop</span> <span class="ow">in</span> <span class="n">schema</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">'properties'</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
-                <span class="n">prop</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">'title'</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">_remove_tile</span><span class="p">(</span><span class="n">schema</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">for</span> <span class="n">prop</span> <span class="ow">in</span> <span class="n">schema</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;properties&#39;</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+        <span class="n">prop</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;title&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="ModuleConfig"><a class="viewcode-back" href="../../generated/mllooper.ModuleConfig.html#mllooper.ModuleConfig">[docs]</a><span class="nd">@loads</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">ModuleConfig</span><span class="p">(</span><span class="n">YAMLBaseConfig</span><span class="p">,</span> <span class="n">ABC</span><span class="p">):</span>
+    <span class="n">model_config</span> <span class="o">=</span> <span class="n">ConfigDict</span><span class="p">(</span>
+        <span class="n">json_schema_extra</span><span class="o">=</span><span class="n">_remove_tile</span>
+    <span class="p">)</span>
 
     <span class="n">name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">log_level</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">INFO</span>
@@ -352,10 +371,12 @@
 <span class="k">class</span> <span class="nc">SeededModule</span><span class="p">(</span><span class="n">Module</span><span class="p">,</span> <span class="n">ABC</span><span class="p">):</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seed</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">seed</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">seed</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">9999999</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Seed of </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> is None, set randomly chosen to </span><span class="si">{</span><span class="n">seed</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">seed</span> <span class="o">=</span> <span class="n">seed</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">seed</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">seed</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">9999999</span><span class="p">)</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Seed of </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> is None, set randomly chosen to </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">seed</span><span class="si">}</span><span class="s2">."</span><span class="p">)</span>
+
         <span class="bp">self</span><span class="o">.</span><span class="n">random</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">Random</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">seed</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">state_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
@@ -364,8 +385,8 @@
         <span class="k">return</span> <span class="n">state_dict</span>
 
     <span class="k">def</span> <span class="nf">load_state_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">strict</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">random_state</span> <span class="o">=</span> <span class="n">state_dict</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">'random_state'</span><span class="p">)</span>
-        <span class="n">seed</span> <span class="o">=</span> <span class="n">state_dict</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">'seed'</span><span class="p">)</span>
+        <span class="n">random_state</span> <span class="o">=</span> <span class="n">state_dict</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;random_state&#39;</span><span class="p">)</span>
+        <span class="n">seed</span> <span class="o">=</span> <span class="n">state_dict</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;seed&#39;</span><span class="p">)</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">SeededModule</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="n">state_dict</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">seed</span> <span class="o">=</span> <span class="n">seed</span>
@@ -373,71 +394,77 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">setstate</span><span class="p">(</span><span class="n">random_state</span><span class="p">)</span>
 
 
+<span class="nd">@loads</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
 <span class="k">class</span> <span class="nc">SeededModuleConfig</span><span class="p">(</span><span class="n">ModuleConfig</span><span class="p">,</span> <span class="n">ABC</span><span class="p">):</span>
     <span class="n">seed</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
 
 
 <div class="viewcode-block" id="NOP"><a class="viewcode-back" href="../../generated/mllooper.NOP.html#mllooper.NOP">[docs]</a><span class="k">class</span> <span class="nc">NOP</span><span class="p">(</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">""" No Operation Module. Does nothing. """</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; No Operation Module. Does nothing. &quot;&quot;&quot;</span>
 <div class="viewcode-block" id="NOP.step"><a class="viewcode-back" href="../../generated/mllooper.NOP.html#mllooper.NOP.step">[docs]</a>    <span class="k">def</span> <span class="nf">step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="n">State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="sd">""" Do nothing.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Do nothing.</span>
 
 <span class="sd">        :param State state: The current state</span>
-<span class="sd">        """</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">pass</span></div></div>
 
 
-<div class="viewcode-block" id="NOPConfig"><a class="viewcode-back" href="../../generated/mllooper.NOPConfig.html#mllooper.NOPConfig">[docs]</a><span class="k">class</span> <span class="nc">NOPConfig</span><span class="p">(</span><span class="n">ModuleConfig</span><span class="p">):</span>
-
-<div class="viewcode-block" id="NOPConfig.load"><a class="viewcode-back" href="../../generated/mllooper.NOPConfig.html#mllooper.NOPConfig.load">[docs]</a>    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">NOP</span><span class="p">(</span><span class="o">**</span><span class="nb">dict</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span></div></div>
+<div class="viewcode-block" id="NOPConfig"><a class="viewcode-back" href="../../generated/mllooper.NOPConfig.html#mllooper.NOPConfig">[docs]</a><span class="nd">@loads</span><span class="p">(</span><span class="n">NOP</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">NOPConfig</span><span class="p">(</span><span class="n">ModuleConfig</span><span class="p">):</span>
+    <span class="k">pass</span></div>
 
 
 <div class="viewcode-block" id="ModuleList"><a class="viewcode-back" href="../../generated/mllooper.ModuleList.html#mllooper.ModuleList">[docs]</a><span class="k">class</span> <span class="nc">ModuleList</span><span class="p">(</span><span class="n">Module</span><span class="p">):</span>
-    <span class="sd">""" A module which represents a list of other modules. """</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; A module which represents a list of other modules. &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Module</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">modules</span> <span class="o">=</span> <span class="n">modules</span>
 
-<div class="viewcode-block" id="ModuleList.initialise"><a class="viewcode-back" href="../../generated/mllooper.ModuleList.html#mllooper.ModuleList.initialise">[docs]</a>    <span class="k">def</span> <span class="nf">initialise</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">modules</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Module</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
-        <span class="sd">""" Perform initialization steps of all modules in the list.</span>
+<div class="viewcode-block" id="ModuleList.initialise"><a class="viewcode-back" href="../../generated/mllooper.ModuleList.html#mllooper.ModuleList.initialise">[docs]</a>    <span class="k">def</span> <span class="nf">initialise</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">modules</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Module</span><span class="p">]):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Perform initialization steps of all modules in the list.</span>
 
 <span class="sd">        :param Dict[str, Module] modules: Dictionary of other modules which are already initialised</span>
-<span class="sd">        """</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">list_modules</span> <span class="o">=</span> <span class="n">modules</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
         <span class="k">for</span> <span class="n">module</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">modules</span><span class="p">:</span>
-            <span class="n">module</span><span class="o">.</span><span class="n">initialise</span><span class="p">(</span><span class="n">modules</span><span class="p">)</span></div>
-            <span class="c1"># TODO add initialised modules to the dict?</span>
+            <span class="k">if</span> <span class="n">module</span><span class="o">.</span><span class="n">name</span> <span class="ow">in</span> <span class="n">list_modules</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;The name </span><span class="si">{</span><span class="n">module</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s2"> is already in the key of initialized modules.&quot;</span>
+                                   <span class="sa">f</span><span class="s2">&quot;Either this module is initialised twice or an other module uses the same name.&quot;</span><span class="p">)</span>
+            <span class="n">list_modules</span><span class="p">[</span><span class="n">module</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">module</span>
+
+        <span class="k">for</span> <span class="n">module</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">modules</span><span class="p">:</span>
+            <span class="n">module</span><span class="o">.</span><span class="n">initialise</span><span class="p">(</span><span class="n">list_modules</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="ModuleList.teardown"><a class="viewcode-back" href="../../generated/mllooper.ModuleList.html#mllooper.ModuleList.teardown">[docs]</a>    <span class="k">def</span> <span class="nf">teardown</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="n">State</span><span class="p">):</span>
-        <span class="sd">""" Teardown all modules in the list.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Teardown all modules in the list.</span>
 
 <span class="sd">        :param State state: The final state</span>
-<span class="sd">        """</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">for</span> <span class="n">module</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">modules</span><span class="p">:</span>
             <span class="n">module</span><span class="o">.</span><span class="n">teardown</span><span class="p">(</span><span class="n">state</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="ModuleList.step"><a class="viewcode-back" href="../../generated/mllooper.ModuleList.html#mllooper.ModuleList.step">[docs]</a>    <span class="k">def</span> <span class="nf">step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="n">State</span><span class="p">):</span>
-        <span class="sd">""" Perform a step of all modules in the list on the state.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Perform a step of all modules in the list on the state.</span>
 
 <span class="sd">        :param State state: The current state</span>
-<span class="sd">        """</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">for</span> <span class="n">module</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">modules</span><span class="p">:</span>
             <span class="n">module</span><span class="o">.</span><span class="n">step</span><span class="p">(</span><span class="n">state</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="ModuleList.step_callback"><a class="viewcode-back" href="../../generated/mllooper.ModuleList.html#mllooper.ModuleList.step_callback">[docs]</a>    <span class="k">def</span> <span class="nf">step_callback</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="n">State</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="sd">""" Call callback of all modules in the list.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Call callback of all modules in the list.</span>
 
 <span class="sd">        :param State state: The current state</span>
-<span class="sd">        """</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">for</span> <span class="n">module</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">modules</span><span class="p">:</span>
             <span class="n">module</span><span class="o">.</span><span class="n">step_callback</span><span class="p">(</span><span class="n">state</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="ModuleList.log"><a class="viewcode-back" href="../../generated/mllooper.ModuleList.html#mllooper.ModuleList.log">[docs]</a>    <span class="k">def</span> <span class="nf">log</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="n">State</span><span class="p">):</span>
-        <span class="sd">""" Log information from all modules in the list.</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Log information from all modules in the list.</span>
 
 <span class="sd">        :param State state: The current state</span>
-<span class="sd">        """</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">module</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">modules</span><span class="p">:</span>
             <span class="n">module</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">state</span><span class="p">)</span></div>
@@ -450,32 +477,33 @@
             <span class="n">modules_states</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">module</span><span class="o">.</span><span class="n">state_dict</span><span class="p">())</span>
 
         <span class="n">state_dict</span><span class="p">[</span><span class="n">full_name</span><span class="p">(</span><span class="bp">self</span><span class="p">)]</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="s1">'modules'</span><span class="p">:</span> <span class="n">modules_states</span>
+            <span class="s1">&#39;modules&#39;</span><span class="p">:</span> <span class="n">modules_states</span>
         <span class="p">}</span>
         <span class="k">return</span> <span class="n">state_dict</span></div>
 
-<div class="viewcode-block" id="ModuleList.load_state_dict"><a class="viewcode-back" href="../../generated/mllooper.ModuleList.html#mllooper.ModuleList.load_state_dict">[docs]</a>    <span class="k">def</span> <span class="nf">load_state_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">any</span><span class="p">],</span> <span class="n">strict</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
+<div class="viewcode-block" id="ModuleList.load_state_dict"><a class="viewcode-back" href="../../generated/mllooper.ModuleList.html#mllooper.ModuleList.load_state_dict">[docs]</a>    <span class="k">def</span> <span class="nf">load_state_dict</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">strict</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
         <span class="n">name</span> <span class="o">=</span> <span class="n">full_name</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">state_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Expected the state dict to have a key '</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">' but it has not."</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Expected the state dict to have a key &#39;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39; but it has not.&quot;</span><span class="p">)</span>
         <span class="n">own_state_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="n">state_dict</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
 
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">modules</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">own_state_dict</span><span class="p">[</span><span class="s1">'modules'</span><span class="p">]):</span>
-            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"The length of modules and module state dictionaries does not match."</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">modules</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">own_state_dict</span><span class="p">[</span><span class="s1">&#39;modules&#39;</span><span class="p">]):</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;The length of modules and module state dictionaries does not match.&quot;</span><span class="p">)</span>
 
-        <span class="k">for</span> <span class="n">module</span><span class="p">,</span> <span class="n">module_state_dict</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">modules</span><span class="p">,</span> <span class="n">own_state_dict</span><span class="p">[</span><span class="s1">'modules'</span><span class="p">]):</span>
+        <span class="k">for</span> <span class="n">module</span><span class="p">,</span> <span class="n">module_state_dict</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">modules</span><span class="p">,</span> <span class="n">own_state_dict</span><span class="p">[</span><span class="s1">&#39;modules&#39;</span><span class="p">]):</span>
             <span class="n">module</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="n">module_state_dict</span><span class="p">)</span>
 
         <span class="nb">super</span><span class="p">(</span><span class="n">ModuleList</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">load_state_dict</span><span class="p">(</span><span class="n">state_dict</span><span class="p">,</span> <span class="n">strict</span><span class="p">)</span></div></div>
 
 
-<div class="viewcode-block" id="ModuleListConfig"><a class="viewcode-back" href="../../generated/mllooper.ModuleListConfig.html#mllooper.ModuleListConfig">[docs]</a><span class="k">class</span> <span class="nc">ModuleListConfig</span><span class="p">(</span><span class="n">ModuleConfig</span><span class="p">):</span>
+<div class="viewcode-block" id="ModuleListConfig"><a class="viewcode-back" href="../../generated/mllooper.ModuleListConfig.html#mllooper.ModuleListConfig">[docs]</a><span class="nd">@loads</span><span class="p">(</span><span class="n">ModuleList</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">ModuleListConfig</span><span class="p">(</span><span class="n">ModuleConfig</span><span class="p">):</span>
     <span class="n">modules</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">ModuleConfig</span><span class="p">]</span>
 
 <div class="viewcode-block" id="ModuleListConfig.load"><a class="viewcode-back" href="../../generated/mllooper.ModuleListConfig.html#mllooper.ModuleListConfig.load">[docs]</a>    <span class="k">def</span> <span class="nf">load</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
         <span class="n">config_data</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
-        <span class="n">config_data</span><span class="p">[</span><span class="s1">'modules'</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">module_config</span><span class="p">:</span> <span class="n">module_config</span><span class="o">.</span><span class="n">load</span><span class="p">(),</span> <span class="n">config_data</span><span class="p">[</span><span class="s1">'modules'</span><span class="p">]))</span>
-        <span class="k">return</span> <span class="n">ModuleList</span><span class="p">(</span><span class="o">**</span><span class="n">config_data</span><span class="p">)</span></div></div>
+        <span class="n">config_data</span><span class="p">[</span><span class="s1">&#39;modules&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">module_config</span><span class="p">:</span> <span class="n">module_config</span><span class="o">.</span><span class="n">load</span><span class="p">(),</span> <span class="n">config_data</span><span class="p">[</span><span class="s1">&#39;modules&#39;</span><span class="p">]))</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_loaded_class</span><span class="p">(</span><span class="o">**</span><span class="n">config_data</span><span class="p">)</span></div></div>
 </pre></div>
         </article>
       </div>
@@ -496,9 +524,7 @@
             
           </div>
           <div class="right-details">
-            <div class="icons">
-              
-            </div>
+            
           </div>
         </div>
         
@@ -513,12 +539,9 @@
 </div><script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
     <script src="../../_static/jquery.js"></script>
     <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
     <script src="../../_static/doctools.js"></script>
+    <script src="../../_static/sphinx_highlight.js"></script>
     <script src="../../_static/scripts/furo.js"></script>
-    <script>let toggleHintShow = 'Click to show';</script>
-    <script>let toggleHintHide = 'Click to hide';</script>
-    <script>let toggleOpenOnPrint = 'true';</script>
-    <script src="../../_static/togglebutton.js"></script>
-    <script>var togglebuttonSelector = '.toggle, .admonition.dropdown, .tag_hide_input div.cell_input, .tag_hide-input div.cell_input, .tag_hide_output div.cell_output, .tag_hide-output div.cell_output, .tag_hide_cell.cell, .tag_hide-cell.cell';</script>
     </body>
 </html>

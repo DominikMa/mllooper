@@ -20,8 +20,8 @@ sys.path.insert(0, os.path.abspath('../../src/'))
 project = 'MLLooper'
 copyright = '2022, Dominik Mairhöfer'
 author = 'Dominik Mairhöfer'
-version = '0.0.2'
-release = '0.0.2'
+version = '1.0.0'
+release = '1.0.0'
 
 
 # -- General configuration ---------------------------------------------------
@@ -36,7 +36,7 @@ extensions = [
     'sphinx.ext.viewcode',
     'sphinx.ext.todo',
     'sphinx.ext.napoleon',
-    'sphinxcontrib.autodoc_pydantic',
+    # 'sphinxcontrib.autodoc_pydantic',
     'sphinx_remove_toctrees',
     'myst_nb'
 ]
@@ -73,9 +73,9 @@ autosummary_generate = True
 todo_include_todos = True
 
 
-autodoc_pydantic_model_show_json = False
-autodoc_pydantic_model_show_config_summary = False
-autodoc_pydantic_model_show_config = False
-autodoc_pydantic_model_show_field_summary = False
+# autodoc_pydantic_model_show_json = False
+# autodoc_pydantic_model_show_config_summary = False
+# autodoc_pydantic_model_show_config = False
+# autodoc_pydantic_model_show_field_summary = False
 
 remove_from_toctrees = ["generated/*"]

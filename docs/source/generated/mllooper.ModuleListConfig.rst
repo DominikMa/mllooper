@@ -1,9 +1,10 @@
-﻿mllooper.ModuleListConfig
+﻿.. currentmodule:: mllooper
+
+mllooper.ModuleListConfig
 =========================
 
-.. currentmodule:: mllooper
 
-.. autopydantic_model:: ModuleListConfig
+.. autoclass:: ModuleListConfig
    :members:
    :show-inheritance:
-   :inherited-members: BaseModel
+

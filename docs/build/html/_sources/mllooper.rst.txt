@@ -17,7 +17,7 @@ Base Modules
 
    .. autosummary::
       :nosignatures:
-      :template: config-template.rst
+      :template: class-template.rst
 
       ModuleConfig
       NOPConfig
@@ -33,7 +33,7 @@ Container Modules
 
    .. autosummary::
       :nosignatures:
-      :template: config-template.rst
+      :template: class-template.rst
 
       ModuleListConfig
 
@@ -50,7 +50,7 @@ Looper Modules
 
    .. autosummary::
       :nosignatures:
-      :template: config-template.rst
+      :template: class-template.rst
 
       LooperConfig
       LooperIterationStopConfig

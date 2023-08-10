@@ -1,9 +1,10 @@
-﻿mllooper.LooperIterationStopConfig
+﻿.. currentmodule:: mllooper
+
+mllooper.LooperIterationStopConfig
 ==================================
 
-.. currentmodule:: mllooper
 
-.. autopydantic_model:: LooperIterationStopConfig
+.. autoclass:: LooperIterationStopConfig
    :members:
    :show-inheritance:
-   :inherited-members: BaseModel
+

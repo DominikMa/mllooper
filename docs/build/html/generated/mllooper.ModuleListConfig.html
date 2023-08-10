@@ -1,18 +1,16 @@
 <!doctype html>
-<html class="no-js">
+<html class="no-js" lang="en">
   <head><meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width,initial-scale=1"/>
-    <meta name="color-scheme" content="light dark"><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+    <meta name="color-scheme" content="light dark"><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
 <link rel="index" title="Index" href="../genindex.html" /><link rel="search" title="Search" href="../search.html" /><link rel="next" title="mllooper.LooperState" href="mllooper.LooperState.html" /><link rel="prev" title="mllooper.ModuleList" href="mllooper.ModuleList.html" />
 
-    <meta name="generator" content="sphinx-4.4.0, furo 2022.02.14.1"/>
-        <title>mllooper.ModuleListConfig - MLLooper 0.0.2 documentation</title>
+    <!-- Generated with Sphinx 5.3.0 and Furo 2023.05.20 -->
+        <title>mllooper.ModuleListConfig - MLLooper 1.0.0 documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
-    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?digest=a8f031f701c6af50c9919b48f173a5785af06fac" />
-    <link rel="stylesheet" type="text/css" href="../_static/autodoc_pydantic.css" />
-    <link rel="stylesheet" type="text/css" href="../_static/togglebutton.css" />
-    <link rel="stylesheet" type="text/css" href="../_static/mystnb.css" />
-    <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?digest=25ceb02ed1c46dc30f2321ff83e92799f69dfdb9" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo.css?digest=e6660623a769aa55fea372102b9bf3151b292993" />
+    <link rel="stylesheet" type="text/css" href="../_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+    <link rel="stylesheet" type="text/css" href="../_static/styles/furo-extensions.css?digest=30d1aed668e5c3a91c3e3bf6a60b675221979f0e" />
     
     
 
@@ -23,24 +21,28 @@
   --color-code-foreground: black;
   
   }
-  body[data-theme="dark"] {
-    --color-code-background: #202020;
-  --color-code-foreground: #d0d0d0;
-  
-  }
-  @media (prefers-color-scheme: dark) {
-    body:not([data-theme="light"]) {
+  @media not print {
+    body[data-theme="dark"] {
       --color-code-background: #202020;
   --color-code-foreground: #d0d0d0;
   
     }
+    @media (prefers-color-scheme: dark) {
+      body:not([data-theme="light"]) {
+        --color-code-background: #202020;
+  --color-code-foreground: #d0d0d0;
+  
+      }
+    }
   }
 </style></head>
   <body>
+    
     <script>
       document.body.dataset.theme = localStorage.getItem("theme") || "auto";
     </script>
     
+
 <svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
   <symbol id="svg-toc" viewBox="0 0 24 24">
     <title>Contents</title>
@@ -122,7 +124,7 @@
       </label>
     </div>
     <div class="header-center">
-      <a href="../index.html"><div class="brand">MLLooper 0.0.2 documentation</div></a>
+      <a href="../index.html"><div class="brand">MLLooper 1.0.0 documentation</div></a>
     </div>
     <div class="header-right">
       <div class="theme-toggle-container theme-toggle-header">
@@ -133,7 +135,7 @@
           <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
         </button>
       </div>
-      <label class="toc-overlay-icon toc-header-icon no-toc" for="__toc">
+      <label class="toc-overlay-icon toc-header-icon" for="__toc">
         <div class="visually-hidden">Toggle table of contents sidebar</div>
         <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
       </label>
@@ -145,10 +147,10 @@
       <div class="sidebar-sticky"><a class="sidebar-brand" href="../index.html">
   
   
-  <span class="sidebar-brand-text">MLLooper 0.0.2 documentation</span>
+  <span class="sidebar-brand-text">MLLooper 1.0.0 documentation</span>
   
 </a><form class="sidebar-search-container" method="get" action="../search.html" role="search">
-  <input class="sidebar-search" placeholder=Search name="q" aria-label="Search">
+  <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
   <input type="hidden" name="check_keywords" value="yes">
   <input type="hidden" name="area" value="default">
 </form>
@@ -171,7 +173,15 @@
   <div class="main">
     <div class="content">
       <div class="article-container">
-        <div class="content-icon-container"><div class="theme-toggle-container theme-toggle-content">
+        <a href="#" class="back-to-top muted-link">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12z"></path>
+          </svg>
+          <span>Back to top</span>
+        </a>
+        <div class="content-icon-container">
+          
+<div class="theme-toggle-container theme-toggle-content">
             <button class="theme-toggle">
               <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
               <svg class="theme-icon-when-auto"><use href="#svg-sun-half"></use></svg>
@@ -179,69 +189,41 @@
               <svg class="theme-icon-when-light"><use href="#svg-sun"></use></svg>
             </button>
           </div>
-          <label class="toc-overlay-icon toc-content-icon no-toc" for="__toc">
+          <label class="toc-overlay-icon toc-content-icon" for="__toc">
             <div class="visually-hidden">Toggle table of contents sidebar</div>
             <i class="icon"><svg><use href="#svg-toc"></use></svg></i>
           </label>
         </div>
         <article role="main">
           <section id="mllooper-modulelistconfig">
-<h1>mllooper.ModuleListConfig<a class="headerlink" href="#mllooper-modulelistconfig" title="Permalink to this headline">#</a></h1>
-<dl class="py class pydantic_model">
+<h1>mllooper.ModuleListConfig<a class="headerlink" href="#mllooper-modulelistconfig" title="Permalink to this heading">#</a></h1>
+<dl class="py class">
 <dt class="sig sig-object py" id="mllooper.ModuleListConfig">
-<em class="property"><span class="pre">pydantic</span> <span class="pre">model</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">mllooper.</span></span><span class="sig-name descname"><span class="pre">ModuleListConfig</span></span><a class="reference internal" href="../_modules/mllooper/module.html#ModuleListConfig"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mllooper.ModuleListConfig" title="Permalink to this definition">#</a></dt>
-<dd><p>Bases: <a class="reference internal" href="mllooper.ModuleConfig.html#mllooper.ModuleConfig" title="mllooper.module.ModuleConfig"><code class="xref py py-class docutils literal notranslate"><span class="pre">mllooper.module.ModuleConfig</span></code></a></p>
-<dl class="py attribute pydantic_field">
-<dt class="sig sig-object py" id="mllooper.ModuleListConfig.log_level">
-<em class="property"><span class="pre">field</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">log_level</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">int</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">20</span></em><a class="headerlink" href="#mllooper.ModuleListConfig.log_level" title="Permalink to this definition">#</a></dt>
-<dd></dd></dl>
-<dl class="py attribute pydantic_field">
-<dt class="sig sig-object py" id="mllooper.ModuleListConfig.log_time_delta">
-<em class="property"><span class="pre">field</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">log_time_delta</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">timedelta</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">datetime.timedelta(seconds=10)</span></em><a class="headerlink" href="#mllooper.ModuleListConfig.log_time_delta" title="Permalink to this definition">#</a></dt>
-<dd></dd></dl>
-<dl class="py attribute pydantic_field">
-<dt class="sig sig-object py" id="mllooper.ModuleListConfig.modules">
-<em class="property"><span class="pre">field</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">modules</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="mllooper.ModuleConfig.html#mllooper.ModuleConfig" title="mllooper.module.ModuleConfig"><span class="pre">mllooper.module.ModuleConfig</span></a><span class="p"><span class="pre">]</span></span></em><em class="property"> <span class="pre">[Required]</span></em><a class="headerlink" href="#mllooper.ModuleListConfig.modules" title="Permalink to this definition">#</a></dt>
-<dd></dd></dl>
-<dl class="py attribute pydantic_field">
-<dt class="sig sig-object py" id="mllooper.ModuleListConfig.name">
-<em class="property"><span class="pre">field</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">name</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#mllooper.ModuleListConfig.name" title="Permalink to this definition">#</a></dt>
-<dd></dd></dl>
-<dl class="py method">
-<dt class="sig sig-object py" id="mllooper.ModuleListConfig.get_yaml_tag">
-<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">get_yaml_tag</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">→</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="headerlink" href="#mllooper.ModuleListConfig.get_yaml_tag" title="Permalink to this definition">#</a></dt>
-<dd><p>Return the configs yaml tag.</p>
-</dd></dl>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">mllooper.</span></span><span class="sig-name descname"><span class="pre">ModuleListConfig</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log_level</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">20</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log_time_delta</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">timedelta</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">datetime.timedelta(seconds=10)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">modules</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="mllooper.ModuleConfig.html#mllooper.ModuleConfig" title="mllooper.module.ModuleConfig"><span class="pre">ModuleConfig</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mllooper/module.html#ModuleListConfig"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mllooper.ModuleListConfig" title="Permalink to this definition">#</a></dt>
+<dd><p>Bases: <a class="reference internal" href="mllooper.ModuleConfig.html#mllooper.ModuleConfig" title="mllooper.module.ModuleConfig"><code class="xref py py-class docutils literal notranslate"><span class="pre">ModuleConfig</span></code></a></p>
 <dl class="py method">
 <dt class="sig sig-object py" id="mllooper.ModuleListConfig.load">
 <span class="sig-name descname"><span class="pre">load</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/mllooper/module.html#ModuleListConfig.load"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#mllooper.ModuleListConfig.load" title="Permalink to this definition">#</a></dt>
 <dd><p>Create the object the yaml config object is for.</p>
 <p>This basic constructor uses all attributes of the config as kwargs for the loaded class.</p>
 </dd></dl>
-<dl class="py method">
-<dt class="sig sig-object py" id="mllooper.ModuleListConfig.set_yaml_tag">
-<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">set_yaml_tag</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">yaml_tag</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Optional</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">→</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#mllooper.ModuleListConfig.set_yaml_tag" title="Permalink to this definition">#</a></dt>
-<dd><p>Set the yaml tag of the config.</p>
-<p>A valid tag has to start with an exclamation mark.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>yaml_tag</strong> – Optional string of the tag. If None the tag will be set to a default value.</p>
-</dd>
-</dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mllooper.ModuleListConfig.model_config">
+<span class="sig-name descname"><span class="pre">model_config</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">ConfigDict</span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'extra':</span> <span class="pre">'forbid',</span> <span class="pre">'json_schema_extra':</span> <span class="pre">&lt;function</span> <span class="pre">_remove_tile&gt;,</span> <span class="pre">'validate_assignment':</span> <span class="pre">True}</span></em><a class="headerlink" href="#mllooper.ModuleListConfig.model_config" title="Permalink to this definition">#</a></dt>
+<dd><p>Since yaml configs are used to create instances extra fields are forbidden.</p>
 </dd></dl>
-<dl class="py method">
-<dt class="sig sig-object py" id="mllooper.ModuleListConfig.validate_config">
-<span class="sig-name descname"><span class="pre">validate_config</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">force_all</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">→</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#mllooper.ModuleListConfig.validate_config" title="Permalink to this definition">#</a></dt>
-<dd><p>Validate a BaseConfig instance</p>
-<p>If force_all is False do not raise an error on missing attributes.
-Configs have to be correct but may be incomplete.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>force_all</strong> – If True raise an error on missing attributes</p>
-</dd>
-</dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="mllooper.ModuleListConfig.model_fields">
+<span class="sig-name descname"><span class="pre">model_fields</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">ClassVar</span><span class="p"><span class="pre">[</span></span><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">FieldInfo</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'log_level':</span> <span class="pre">FieldInfo(annotation=int,</span> <span class="pre">required=False,</span> <span class="pre">default=20),</span> <span class="pre">'log_time_delta':</span> <span class="pre">FieldInfo(annotation=timedelta,</span> <span class="pre">required=False,</span> <span class="pre">default=datetime.timedelta(seconds=10)),</span> <span class="pre">'modules':</span> <span class="pre">FieldInfo(annotation=List[ModuleConfig],</span> <span class="pre">required=True),</span> <span class="pre">'name':</span> <span class="pre">FieldInfo(annotation=Union[str,</span> <span class="pre">NoneType],</span> <span class="pre">required=False)}</span></em><a class="headerlink" href="#mllooper.ModuleListConfig.model_fields" title="Permalink to this definition">#</a></dt>
+<dd><p>Metadata about the fields defined on the model,
+mapping of field names to [<cite>FieldInfo</cite>][pydantic.fields.FieldInfo].</p>
+<p>This replaces <cite>Model.__fields__</cite> from Pydantic V1.</p>
 </dd></dl>
+
 </dd></dl>
+
 </section>
 
         </article>
@@ -256,10 +238,10 @@ Configs have to be correct but may be incomplete.</p>
                 </div>
                 <div class="title">mllooper.LooperState</div>
               </div>
-              <svg><use href="#svg-arrow-right"></use></svg>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>
           <a class="prev-page" href="mllooper.ModuleList.html">
-              <svg><use href="#svg-arrow-right"></use></svg>
+              <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
               <div class="page-info">
                 <div class="context">
                   <span>Previous</span>
@@ -281,16 +263,38 @@ Configs have to be correct but may be incomplete.</p>
             
           </div>
           <div class="right-details">
-            <div class="icons">
-              
-            </div>
+            
           </div>
         </div>
         
       </footer>
     </div>
-    <aside class="toc-drawer no-toc">
+    <aside class="toc-drawer">
       
+      
+      <div class="toc-sticky toc-scroll">
+        <div class="toc-title-container">
+          <span class="toc-title">
+            On this page
+          </span>
+        </div>
+        <div class="toc-tree-container">
+          <div class="toc-tree">
+            <ul>
+<li><a class="reference internal" href="#">mllooper.ModuleListConfig</a><ul>
+<li><a class="reference internal" href="#mllooper.ModuleListConfig"><code class="docutils literal notranslate"><span class="pre">ModuleListConfig</span></code></a><ul>
+<li><a class="reference internal" href="#mllooper.ModuleListConfig.load"><code class="docutils literal notranslate"><span class="pre">ModuleListConfig.load()</span></code></a></li>
+<li><a class="reference internal" href="#mllooper.ModuleListConfig.model_config"><code class="docutils literal notranslate"><span class="pre">ModuleListConfig.model_config</span></code></a></li>
+<li><a class="reference internal" href="#mllooper.ModuleListConfig.model_fields"><code class="docutils literal notranslate"><span class="pre">ModuleListConfig.model_fields</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+          </div>
+        </div>
+      </div>
       
       
     </aside>
@@ -298,12 +302,9 @@ Configs have to be correct but may be incomplete.</p>
 </div><script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
     <script src="../_static/jquery.js"></script>
     <script src="../_static/underscore.js"></script>
+    <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
     <script src="../_static/doctools.js"></script>
+    <script src="../_static/sphinx_highlight.js"></script>
     <script src="../_static/scripts/furo.js"></script>
-    <script>let toggleHintShow = 'Click to show';</script>
-    <script>let toggleHintHide = 'Click to hide';</script>
-    <script>let toggleOpenOnPrint = 'true';</script>
-    <script src="../_static/togglebutton.js"></script>
-    <script>var togglebuttonSelector = '.toggle, .admonition.dropdown, .tag_hide_input div.cell_input, .tag_hide-input div.cell_input, .tag_hide_output div.cell_output, .tag_hide-output div.cell_output, .tag_hide_cell.cell, .tag_hide-cell.cell';</script>
     </body>
 </html>
