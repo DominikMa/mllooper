@@ -148,6 +148,7 @@ class ModelGraphLogMessage(TensorBoardLogMessage):
 class TensorBoardAddCustomScalarsLogMessage(BaseModel):
     layout: Dict[str, Dict[str, Tuple[Literal['Multiline', 'Margin'], List[str]]]]
 
+
 class ModelLogMessage(BaseModel):
     """Log message for a model"""
     step: Optional[int] = None
