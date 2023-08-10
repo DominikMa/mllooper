@@ -48,7 +48,7 @@ def get_not_existing_log_dir(log_dir: Path, timestamp: datetime, create_log_dir:
 
 class BufferingLogHandler(Handler):
 
-    def __init__(self, targets: Optional[List[Handler]] = None, flush_on_close: bool = True, **kwargs):
+    def __init__(self, targets: Optional[List[Handler]] = None, flush_on_close: bool = False, **kwargs):
         super().__init__(**kwargs)
         self.targets = targets
         self.flush_on_close = flush_on_close

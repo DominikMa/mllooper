@@ -18,6 +18,7 @@ from pip._internal import vcs
 from pydantic import ValidationError
 from yaloader import ConfigLoader, YAMLConfigDumper
 from yaml import MarkedYAMLError
+from yaml.constructor import ConstructorError
 
 from mllooper import Module, ModuleConfig
 from mllooper.logging.handler import BufferingLogHandler
@@ -140,31 +141,49 @@ def git_import_module(module_git_url: str):
         raise ModuleNotFoundError(f"Could not import {module_git_url}: {error}") from error
 
 
+def load_config(config_loader: ConfigLoader, run_config: str, auto_load: bool = False, final: bool = True):
+    if (path := Path(run_config)).is_file() or Path(run_config).with_suffix('.yaml').is_file():
+        try:
+            constructed_run = config_loader.construct_from_file(path, auto_load=auto_load, final=final)
+        except (FileNotFoundError, MarkedYAMLError, ValidationError) as e:
+            raise BadParameter(f"{e}") from e
+    else:
+        try:
+            constructed_run = config_loader.construct_from_string(run_config, auto_load=auto_load, final=final)
+        except (MarkedYAMLError, ValidationError) as e:
+            raise BadParameter(f"{e}") from e
+    return constructed_run
+
+
 @click.group()
-def cli():
-    pass
-
-
-@cli.command()
 @click.option("-c", "--config", "config_paths", multiple=True, default=[], type=Path)
 @click.option("-d", "--dir", "config_dirs", multiple=True, default=[], type=Path)
 @click.option("-y", "--yaml", "yaml_strings", multiple=True, default=[], type=str)
 @click.option("--install", "install_packages", multiple=True, default=[])
 @click.option("-i", "--import", "import_modules", multiple=True, default=[])
 @click.option("-g", "--git-import", "git_import_modules", multiple=True, default=[])
-@click.option("--autoload/--no-autoload", "auto_load", default=False)
 @click.option("-v", "--verbose", count=True, default=0)
 @click.option("--quiet", count=True, default=0)
 @click.option("--global-log-level", type=int, default=30)
-@click.argument('run_config', type=str)
-def run(config_paths: Tuple[Path], config_dirs: Tuple[Path], yaml_strings: Tuple[str],
-        install_packages: Tuple[str], import_modules: Tuple[str], git_import_modules: Tuple[str],
-        run_config: str, auto_load: bool, verbose: int, quiet: int, global_log_level: int):
+@click.pass_context
+def cli(
+        ctx,
+        config_paths: Tuple[Path],
+        config_dirs: Tuple[Path],
+        yaml_strings: Tuple[str],
+        install_packages: Tuple[str],
+        import_modules: Tuple[str],
+        git_import_modules: Tuple[str],
+        verbose: int,
+        quiet: int,
+        global_log_level: int
+):
+    ctx.ensure_object(dict)
 
     logging.getLogger().setLevel(global_log_level)
     log_level = 20 - verbose * 10 + quiet * 10
-
     logger.setLevel(log_level)
+
     buffering_log_handler = BufferingLogHandler()
     logging.getLogger().addHandler(buffering_log_handler)
 
@@ -211,20 +230,24 @@ def run(config_paths: Tuple[Path], config_dirs: Tuple[Path], yaml_strings: Tuple
         except (MarkedYAMLError, ValidationError) as e:
             raise BadParameter(f"{e}") from e
 
-    previous_handlers = logging.getLogger().handlers.copy()
     logging.getLogger().removeHandler(buffering_log_handler)
 
+    ctx.obj['config_loader'] = config_loader
+    ctx.obj['buffering_log_handler'] = buffering_log_handler
+
+
+@cli.command()
+@click.option("--autoload/--no-autoload", "auto_load", default=False)
+@click.argument('run_config', type=str)
+@click.pass_obj
+def run(ctx_object, run_config: str, auto_load: bool):
+    config_loader = ctx_object['config_loader']
+    buffering_log_handler = ctx_object['buffering_log_handler']
+
+    previous_handlers = logging.getLogger().handlers.copy()
+
     # load and run the run configuration
-    if (path := Path(run_config)).is_file() or Path(run_config).with_suffix('.yaml').is_file():
-        try:
-            constructed_run = config_loader.construct_from_file(path, auto_load=auto_load)
-        except (FileNotFoundError, MarkedYAMLError, ValidationError) as e:
-            raise BadParameter(f"{e}") from e
-    else:
-        try:
-            constructed_run = config_loader.construct_from_string(run_config, auto_load=auto_load)
-        except (MarkedYAMLError, ValidationError) as e:
-            raise BadParameter(f"{e}") from e
+    constructed_run = load_config(config_loader, run_config, auto_load)
 
     if auto_load:
         if not isinstance(constructed_run, Module):
@@ -262,8 +285,11 @@ def run(config_paths: Tuple[Path], config_dirs: Tuple[Path], yaml_strings: Tuple
 @cli.command()
 @click.argument('tag', type=str)
 @click.option("--definitions/--no-definitions", "definitions", default=False)
-def info(tag: str, definitions: bool):
-    config_loader = ConfigLoader()
+@click.pass_obj
+def explain(ctx_object, tag: str, definitions: bool):
+    config_loader: ConfigLoader = ctx_object['config_loader']
+    buffering_log_handler: BufferingLogHandler = ctx_object['buffering_log_handler']
+    buffering_log_handler.close()
 
     try:
         config = config_loader.yaml_loader.yaml_config_classes[tag]
@@ -271,7 +297,7 @@ def info(tag: str, definitions: bool):
         raise BadParameter(f"There is no configuration definition loaded for the tag {tag}. "
                            f"Make sure that the configuration class is imported.")
 
-    jschema: str = config.schema_json(ref_template='/REPLACE/{model}/REPLACE/')
+    jschema: str = json.dumps(config.model_json_schema(ref_template='/REPLACE/{model}/REPLACE/'))
 
     for config_tag, config_class in config_loader.yaml_loader.yaml_config_classes.items():
         jschema = jschema.replace(f'"{config_class.__name__}": {{"title": "{config_class.__name__}"',
@@ -283,16 +309,11 @@ def info(tag: str, definitions: bool):
     jschema = re.sub(r'/REPLACE/(?P<name>.*?)/REPLACE/', r'#/definitions/\g<name>', jschema)
 
     schema = json.loads(jschema)
-    print(
-        f"{schema['title']}\n{schema['description']}"
-    )
-    print(
-        f"\n\nproperties: {json.dumps(schema['properties'], indent=2)}"
-    )
+    title = schema['title'] if 'description' not in schema else f"{schema['title']}\n{schema['description']}\n"
+    print(title)
+    print(f"\nproperties: {json.dumps(schema['properties'], indent=2)}")
     if definitions:
-        print(
-            f"\n\ndefinitions: {json.dumps(schema['definitions'], indent=2)}"
-        )
+        print(f"\n\ndefinitions: {json.dumps(schema['definitions'], indent=2)}")
 
 
 if __name__ == '__main__':
