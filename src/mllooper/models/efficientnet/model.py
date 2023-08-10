@@ -1,28 +1,31 @@
 from functools import partial
-from typing import List, Any, Literal
+from typing import Any, Literal
 
-import yaloader
+import torchvision
+
 from torch import nn
-from torch.hub import load_state_dict_from_url
-from torchvision.models import EfficientNet as TorchEfficientNet
-from torchvision.models.efficientnet import MBConvConfig, _efficientnet_conf, model_urls
+from torchvision.models import EfficientNet as TorchEfficientNet, EfficientNet_B0_Weights, EfficientNet_B1_Weights
+from yaloader import loads
 
 from mllooper.models import Model, ModelConfig
 
 
 def efficientnet_model(
         arch: str,
-        inverted_residual_setting: List[MBConvConfig],
+        weights,
         pretrained: bool = False,
-        progress: bool = True,
+        progress: bool = False,
         in_channels: int = 3,
         num_classes: int = 1000,
         **kwargs: Any
 ) -> TorchEfficientNet:
-    model = TorchEfficientNet(inverted_residual_setting, num_classes=num_classes, **kwargs)
+    model_cunstructor = getattr(torchvision.models, arch)
+    model: TorchEfficientNet = model_cunstructor(weights=None, progress=False, num_classes=num_classes, **kwargs)
+
 
     if in_channels != 3:
         original_layer: nn.Conv2d = model.features[0][0]
+
         input_layer = nn.Conv2d(in_channels, original_layer.out_channels, kernel_size=original_layer.kernel_size,
                                 stride=original_layer.stride, padding=original_layer.padding,
                                 dilation=original_layer.dilation, groups=original_layer.groups,
@@ -34,9 +37,7 @@ def efficientnet_model(
         model.features[0][0] = input_layer
 
     if pretrained:
-        if model_urls.get(arch, None) is None:
-            raise ValueError("No checkpoint is available for model type {}".format(arch))
-        state_dict = load_state_dict_from_url(model_urls[arch], progress=progress)
+        state_dict = weights.get_state_dict(progress=progress)
         strict = True
 
         if in_channels != 3:
@@ -55,8 +56,8 @@ def efficientnet_model(
     return model
 
 
-b0 = partial(efficientnet_model, "efficientnet_b0", _efficientnet_conf(width_mult=1.0, depth_mult=1.0))
-b1 = partial(efficientnet_model, "efficientnet_b1", _efficientnet_conf(width_mult=1.0, depth_mult=1.1))
+b0 = partial(efficientnet_model, "efficientnet_b0", EfficientNet_B0_Weights.IMAGENET1K_V1)
+b1 = partial(efficientnet_model, "efficientnet_b1", EfficientNet_B1_Weights.IMAGENET1K_V1)
 
 
 class EfficientNet(Model):
@@ -74,8 +75,9 @@ class EfficientNet(Model):
         super().__init__(torch_model, **kwargs)
 
 
-@yaloader.loads(EfficientNet)
+@loads(EfficientNet)
 class EfficientNetConfig(ModelConfig):
+    name: str = 'EfficientNet'
     model: Literal['b0', 'b1']
     pretrained: bool = False
     in_channels: int = 3

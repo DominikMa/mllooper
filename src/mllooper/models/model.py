@@ -4,9 +4,10 @@ from pathlib import Path
 from typing import Any, Dict, Optional, List, Union
 
 import torch
-from baselooper import SeededModule, State, SeededModuleConfig
 from torch import nn
+from yaloader import loads
 
+from mllooper import SeededModule, State, SeededModuleConfig
 from mllooper.data import DatasetState
 
 
@@ -16,10 +17,14 @@ class ModelState(State):
 
 
 class Model(SeededModule, ABC):
-    def __init__(self, torch_model: nn.Module, module_load_file: Optional[Path] = None, device: str = 'cpu', **kwargs):
+    def __init__(self, torch_model: nn.Module, module_load_file: Optional[Path] = None,
+                 device: Union[str, List[str]] = 'cpu', **kwargs):
         super().__init__(**kwargs)
-        self.device = torch.device(device)
+        devices = device if isinstance(device, list) else [device]
+        self.devices = [torch.device(device) for device in devices]
+        self.device = self.devices[0]
         self.module = torch_model.to(self.device)
+        self._parallel_module = self.module if len(self.devices) == 1 else nn.DataParallel(self.module, device_ids=self.devices)
 
         if module_load_file:
             module_state_dict = torch.load(module_load_file, map_location=self.device)
@@ -32,8 +37,12 @@ class Model(SeededModule, ABC):
         self.state.output = None
 
         module_input = self.format_module_input(dataset_state.data)
+
+        self.module.train() if dataset_state.train else self.module.eval()
+        self._parallel_module.train() if dataset_state.train else self._parallel_module.eval()
         with torch.set_grad_enabled(dataset_state.train):
-            module_output = self.module(module_input)
+            # module_output = self.module(module_input)
+            module_output = self._parallel_module(module_input)
 
         self.state.output = self.format_module_output(module_output)
         state.model_state = self.state
@@ -67,9 +76,10 @@ class Model(SeededModule, ABC):
 
     def state_dict(self) -> Dict[str, Any]:
         state_dict = super(Model, self).state_dict()
+        # TODO check copy of torch module, deepcopy?
         state_dict.update(
             device=str(self.device),
-            module_state_dict=self.module.state_dict(),
+            module_state_dict=self.module.state_dict().copy(),
             state=self.state
         )
         return state_dict
@@ -87,5 +97,7 @@ class Model(SeededModule, ABC):
         self.state = state
 
 
+@loads(None)
 class ModelConfig(SeededModuleConfig):
     module_load_file: Optional[Path]
+    device: Union[str, List[str]] = 'cpu'

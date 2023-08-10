@@ -3,7 +3,7 @@ import string
 from typing import Tuple, Union, List
 
 import numpy as np
-import yaloader
+from yaloader import loads
 
 from mllooper.data import PartitionedDataset, PartitionedDatasetConfig, IterableDataset
 
@@ -15,7 +15,8 @@ class AlwaysClassZeroDataset(PartitionedDataset):
             nr_features = (nr_features, )
         self.features = nr_features
         self.samples = nr_samples
-        self.data, self.labels, self.identifiers = self.generate_data(self.features, nr_samples, seed=self.random.randint(0, 99999))
+        self.data, self.labels, self.identifiers = self.generate_data(self.features, nr_samples,
+                                                                      seed=self.random.randint(0, 99999))
 
         indices = []
         identifiers = []
@@ -28,7 +29,6 @@ class AlwaysClassZeroDataset(PartitionedDataset):
         self.data = self.data[indices]
         self.labels = self.labels[indices]
         self.identifiers = identifiers
-
 
     @staticmethod
     def generate_data(nr_features: Tuple[int, ...] = (2,), nr_samples: int = 1000, seed: int = 0) -> Tuple[np.ndarray, np.ndarray, List[str]]:
@@ -55,7 +55,7 @@ class AlwaysClassZeroDataset(PartitionedDataset):
         return len(self.data)
 
 
-@yaloader.loads(AlwaysClassZeroDataset)
+@loads(AlwaysClassZeroDataset)
 class AlwaysClassZeroDatasetConfig(PartitionedDatasetConfig):
     nr_features: Union[int, Tuple[int, ...]] = 2
     nr_samples: int = 1000
@@ -71,7 +71,7 @@ class AlwaysClassZeroItDataset(AlwaysClassZeroDataset, IterableDataset):
         }
 
 
-@yaloader.loads(AlwaysClassZeroItDataset)
+@loads(AlwaysClassZeroItDataset)
 class AlwaysClassZeroItDatasetConfig(AlwaysClassZeroDatasetConfig):
     pass
 
@@ -104,7 +104,7 @@ class RandomClassDataset(PartitionedDataset):
         previous_random_state = np.random.get_state()
         np.random.seed(seed)
         data = np.random.uniform(low=-1, high=1, size=[nr_samples, *nr_features]).astype(np.float32)
-        labels = np.random.randint(low=0, high=nr_classes-1, size=nr_samples)
+        labels = np.random.randint(low=0, high=nr_classes, size=nr_samples)
         np.random.set_state(previous_random_state)
 
         previous_random_state = random.getstate()
@@ -124,7 +124,7 @@ class RandomClassDataset(PartitionedDataset):
         return len(self.data)
 
 
-@yaloader.loads(RandomClassDataset)
+@loads(RandomClassDataset)
 class RandomClassDatasetConfig(PartitionedDatasetConfig):
     nr_features: Union[int, Tuple[int, ...]] = 2
     nr_classes: int = 2
@@ -141,6 +141,6 @@ class RandomClassItDataset(RandomClassDataset, IterableDataset):
         }
 
 
-@yaloader.loads(RandomClassItDataset)
+@loads(RandomClassItDataset)
 class RandomClassItDatasetConfig(RandomClassDatasetConfig):
     pass

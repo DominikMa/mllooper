@@ -1,9 +1,10 @@
-from typing import Optional, Dict, Any
+from io import BytesIO, StringIO
+from typing import Optional, Dict, Any, Tuple, Literal, List
 
 import numpy as np
 import torch
 from matplotlib import pyplot as plt
-from pydantic import validator, BaseModel
+from pydantic import validator, BaseModel, field_validator
 from torch import nn
 
 
@@ -51,7 +52,8 @@ class ImageLogMessage(TensorBoardLogMessage):
         arbitrary_types_allowed = True
 
     # noinspection PyArgumentList
-    @validator("image")
+    # TODO: check if values still work
+    @field_validator("image")
     def validate_image_data(cls, image: np.ndarray, values: Dict[str, Any]):
         """Validate that image data is between 0 and 255 and as `np.uin8`"""
         ignore_img_data = values.get("ignore_img_data", False)
@@ -82,7 +84,7 @@ class HistogramLogMessage(TensorBoardLogMessage):
         """Allow arbitrary types because `np.array` can not be checked"""
         arbitrary_types_allowed = True
 
-    @validator("array")
+    @field_validator("array")
     def validate_points_data(cls, array: np.ndarray):
         """Validate that points data is in shape [N, 3]"""
         shape = array.shape
@@ -99,7 +101,7 @@ class PointCloudLogMessage(TensorBoardLogMessage):
         """Allow arbitrary types because `torch.Tensor` can not be checked"""
         arbitrary_types_allowed = True
 
-    @validator("points")
+    @field_validator("points")
     def validate_points_data(cls, points: torch.Tensor):
         """Validate that points data is in shape [N, 3]"""
         shape = points.shape
@@ -107,7 +109,8 @@ class PointCloudLogMessage(TensorBoardLogMessage):
             raise ValueError("points array has to be of shape [N, 3]")
         return points
 
-    @validator("colors")
+    # TODO: check if values still work
+    @field_validator("colors")
     def validate_colors_data(cls, colors: Optional[torch.Tensor], values: Dict[str, Any]):
         """Validate that colors data is in shape [N, 3], shame shape as points
         and data is between 0 and 255 and as `np.uin8`
@@ -142,6 +145,10 @@ class ModelGraphLogMessage(TensorBoardLogMessage):
         arbitrary_types_allowed = True
 
 
+class TensorBoardAddCustomScalarsLogMessage(BaseModel):
+    layout: Dict[str, Dict[str, Tuple[Literal['Multiline', 'Margin'], List[str]]]]
+
+
 class ModelLogMessage(BaseModel):
     """Log message for a model"""
     step: Optional[int] = None
@@ -154,6 +161,69 @@ class ModelLogMessage(BaseModel):
 
     def __str__(self):
         msg = f"Logged model {self.name}"
+        if self.step:
+            msg = f"{msg} at step {self.step}"
+        return msg
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}({str(self)})"
+
+
+class ConfigLogMessage(BaseModel):
+    """Log message for a config"""
+    name: str
+    config: str
+
+    @property
+    def formatted_text(self):
+        text = self.config
+        if not text.startswith('<pre>'):
+            text = f'<pre>{text}'
+        if not text.endswith('</pre>'):
+            text = f'{text}</pre>'
+        return text
+
+    def __str__(self):
+        msg = f"Logged config {self.name}"
+        return msg
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}({str(self)})"
+
+
+class BytesIOLogMessage(BaseModel):
+    """Log message for bytes"""
+    step: Optional[int] = None
+    name: str
+    bytes: BytesIO
+
+    class Config:
+        """Allow arbitrary types because `io.BytesIO` can not be checked"""
+        arbitrary_types_allowed = True
+
+    def __str__(self):
+        msg = f"Logged {self.name}"
+        if self.step:
+            msg = f"{msg} at step {self.step}"
+        return msg
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}({str(self)})"
+
+
+class StringIOLogMessage(BaseModel):
+    """Log message for text"""
+    step: Optional[int] = None
+    name: str
+    text: StringIO
+    encoding: str = 'utf-8'
+
+    class Config:
+        """Allow arbitrary types because `io.StringIO` can not be checked"""
+        arbitrary_types_allowed = True
+
+    def __str__(self):
+        msg = f"Logged {self.name}"
         if self.step:
             msg = f"{msg} at step {self.step}"
         return msg

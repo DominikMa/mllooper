@@ -1,5 +1,5 @@
-import yaloader
 from torchvision.models import resnet18
+from yaloader import loads
 
 from mllooper.models import Model, ModelConfig
 
@@ -10,6 +10,6 @@ class ResNet(Model):
         super().__init__(torch_model, **kwargs)
 
 
-@yaloader.loads(ResNet)
+@loads(ResNet)
 class ResNetConfig(ModelConfig):
     pass

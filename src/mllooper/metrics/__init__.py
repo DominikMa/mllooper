@@ -10,10 +10,16 @@ from mllooper.metrics.metric import (
     MeanMetricState,
     MeanMetric,
     MeanMetricConfig,
+    RunningMeanMetric,
+    RunningMeanMetricConfig,
     MetricListState,
     MetricList,
     MetricListConfig,
     Loss,
     LossConfig
 )
-from mllooper.metrics.metrics import CrossEntropyLoss
+from mllooper.metrics.metrics import (
+    CrossEntropyLoss,
+    MSELoss,
+    MAELoss
+)
