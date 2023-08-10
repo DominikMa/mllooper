@@ -5,6 +5,7 @@ import re
 import subprocess
 import sys
 from importlib.util import spec_from_file_location, module_from_spec, find_spec
+from importlib.metadata import distributions
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Tuple
@@ -19,9 +20,12 @@ from yaloader import ConfigLoader, YAMLConfigDumper
 from yaml import MarkedYAMLError
 
 from mllooper import Module, ModuleConfig
+from mllooper.logging.handler import BufferingLogHandler
 from mllooper.logging.messages import ConfigLogMessage
 
 TEMP_DIR = TemporaryDirectory(prefix='mllooper_tmp_')
+
+logger = logging.getLogger('mllooper.cli')
 
 
 def install_package(package_name: str):
@@ -29,6 +33,10 @@ def install_package(package_name: str):
         subprocess.check_call([sys.executable, '-m', 'pip', 'install', '--force-reinstall', package_name])
     except subprocess.CalledProcessError as e:
         raise RuntimeError(f"Could not install {package_name}: {e}")
+    else:
+        logger.info(
+            f"Installed package {package_name}"
+        )
 
 
 def is_valid_module_name(module_name: str):
@@ -70,6 +78,9 @@ def import_module(module_name: str):
         if hasattr(error, 'name') and error.name is not None and error.name != module_name:
             raise
     else:
+        logger.info(
+            f"Imported module {module_name}"
+        )
         return
 
     # try to import as file or directory
@@ -79,6 +90,9 @@ def import_module(module_name: str):
         if hasattr(error, 'name') and error.name is not None and error.name != module_name:
             raise
     else:
+        logger.info(
+            f"Imported module {module_name}"
+        )
         return
 
     raise ModuleNotFoundError(f"Could not import {module_name}")
@@ -103,18 +117,25 @@ def git_import_module(module_git_url: str):
             depth=1
         )
         bare_repo.git.checkout(rev)
+        ref = bare_repo.head.ref.name
+        commit = bare_repo.head.commit.hexsha
     else:
-        git.Repo.clone_from(
+        repo = git.Repo.clone_from(
             url=url,
             to_path=clone_path.name,
             depth=1
         )
+        ref = repo.head.ref.name
+        commit = repo.head.commit.hexsha
 
     import_path = Path(clone_path.name).joinpath(path)
 
     # try to import as file or directory
     try:
         import_from_disk(str(import_path))
+        logger.info(
+            f"Imported module {name}{'' if not path else ' at ' + path} from {url} at revision {ref} ({commit})"
+        )
     except ModuleNotFoundError as error:
         raise ModuleNotFoundError(f"Could not import {module_git_url}: {error}") from error
 
@@ -132,10 +153,20 @@ def cli():
 @click.option("-i", "--import", "import_modules", multiple=True, default=[])
 @click.option("-g", "--git-import", "git_import_modules", multiple=True, default=[])
 @click.option("--autoload/--no-autoload", "auto_load", default=False)
+@click.option("-v", "--verbose", count=True, default=0)
+@click.option("--quiet", count=True, default=0)
+@click.option("--global-log-level", type=int, default=30)
 @click.argument('run_config', type=str)
 def run(config_paths: Tuple[Path], config_dirs: Tuple[Path], yaml_strings: Tuple[str],
         install_packages: Tuple[str], import_modules: Tuple[str], git_import_modules: Tuple[str],
-        run_config: str, auto_load: bool):
+        run_config: str, auto_load: bool, verbose: int, quiet: int, global_log_level: int):
+
+    logging.getLogger().setLevel(global_log_level)
+    log_level = 20 - verbose * 10 + quiet * 10
+
+    logger.setLevel(log_level)
+    buffering_log_handler = BufferingLogHandler()
+    logging.getLogger().addHandler(buffering_log_handler)
 
     # install packages before importing modules
     for package in install_packages:
@@ -180,6 +211,9 @@ def run(config_paths: Tuple[Path], config_dirs: Tuple[Path], yaml_strings: Tuple
         except (MarkedYAMLError, ValidationError) as e:
             raise BadParameter(f"{e}") from e
 
+    previous_handlers = logging.getLogger().handlers.copy()
+    logging.getLogger().removeHandler(buffering_log_handler)
+
     # load and run the run configuration
     if (path := Path(run_config)).is_file() or Path(run_config).with_suffix('.yaml').is_file():
         try:
@@ -203,16 +237,20 @@ def run(config_paths: Tuple[Path], config_dirs: Tuple[Path], yaml_strings: Tuple
                                f"Got {type(constructed_run)} instead.")
         loaded_run = constructed_run.load()
 
-    # TODO add logging for loaded git modules
+    new_handlers = [handler for handler in logging.getLogger().handlers if handler not in previous_handlers]
+    buffering_log_handler.set_targets(new_handlers)
+    buffering_log_handler.flush()
+    buffering_log_handler.close()
+
+    installed_packages = ', '.join(sorted([f"{package.name}=={package.version}" for package in distributions()], key=str.lower))
+    logger.info(f"Installed packages:\n{installed_packages}")
 
     # Log config
-    logger = logging.getLogger('ML Looper')
-    logger.setLevel(logging.INFO)
-
     YAMLConfigDumper.exclude_unset = False
     YAMLConfigDumper.exclude_defaults = False
     config = yaml.dump(constructed_run, Dumper=YAMLConfigDumper, sort_keys=False)
     logger.info(ConfigLogMessage(name='full_config', config=config))
+    logger.debug(f"Full Config:\n{config}")
     YAMLConfigDumper.exclude_unset = True
     YAMLConfigDumper.exclude_defaults = True
     config = yaml.dump(constructed_run, Dumper=YAMLConfigDumper, sort_keys=False)

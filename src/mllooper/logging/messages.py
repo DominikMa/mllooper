@@ -183,7 +183,7 @@ class ConfigLogMessage(BaseModel):
         return text
 
     def __str__(self):
-        msg = f"Logged config to {self.name}.yaml"
+        msg = f"Logged config {self.name}"
         return msg
 
     def __repr__(self):

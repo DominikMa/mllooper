@@ -3,8 +3,9 @@ import sys
 from datetime import datetime
 from logging import Handler
 from logging import LogRecord
+from logging.handlers import BufferingHandler
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List
 
 import coloredlogs
 import numpy as np
@@ -43,6 +44,49 @@ def get_not_existing_log_dir(log_dir: Path, timestamp: datetime, create_log_dir:
             new_log_dir.mkdir(parents=True, exist_ok=False)
         _TIMESTAMP = new_timestamp
         return new_log_dir
+
+
+class BufferingLogHandler(Handler):
+
+    def __init__(self, targets: Optional[List[Handler]] = None, flush_on_close: bool = True, **kwargs):
+        super().__init__(**kwargs)
+        self.targets = targets
+        self.flush_on_close = flush_on_close
+        self.buffer = []
+
+    def emit(self, record):
+        self.buffer.append(record)
+
+    def set_targets(self, targets: List[Handler]):
+        self.acquire()
+        try:
+            self.targets = targets
+        finally:
+            self.release()
+
+    def flush(self):
+        self.acquire()
+        try:
+            if self.targets:
+                for record in self.buffer:
+                    for target in self.targets:
+                        if record.levelno >= target.level:
+                            target.handle(record)
+                self.buffer.clear()
+        finally:
+            self.release()
+
+    def close(self):
+        try:
+            if self.flush_on_close:
+                self.flush()
+        finally:
+            self.acquire()
+            try:
+                self.targets = None
+                BufferingHandler.close(self)
+            finally:
+                self.release()
 
 
 class LogHandler(Module):
