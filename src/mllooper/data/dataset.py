@@ -8,13 +8,14 @@ from pydantic import BaseModel, confloat, Field
 from torch.utils.data import DataLoader as TorchDataLoader
 from torch.utils.data import IterableDataset as TorchIterableDataset
 from torch.utils.data.dataloader import _BaseDataLoaderIter
-from yaloader import YAMLBaseConfig
+from yaloader import YAMLBaseConfig, loads
 
 from mllooper import State, SeededModule, SeededModuleConfig
 
 _LOGGED_NON_TENSOR_TYPES_GPU = set()
 
 
+@loads(None)
 class DataLoaderArgs(YAMLBaseConfig):
     _yaml_tag = '!DataLoaderArgs'
 
@@ -161,6 +162,7 @@ class Dataset(SeededModule, ABC):
         self.state = state
 
 
+@loads(None)
 class DatasetConfig(SeededModuleConfig, ABC):
     train: bool = True
     data_loader_args: DataLoaderArgs = Field(default_factory=DataLoaderArgs)
@@ -263,6 +265,7 @@ class PartitionedDataset(Dataset, ABC):
                            for partition_name, partition in partitions.items()}
 
 
+@loads(None)
 class PartitionedDatasetConfig(DatasetConfig, ABC):
     partition: str
     partitions: Dict[str, DatasetPartition]

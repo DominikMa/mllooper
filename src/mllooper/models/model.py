@@ -5,6 +5,7 @@ from typing import Any, Dict, Optional, List, Union
 
 import torch
 from torch import nn
+from yaloader import loads
 
 from mllooper import SeededModule, State, SeededModuleConfig
 from mllooper.data import DatasetState
@@ -96,6 +97,7 @@ class Model(SeededModule, ABC):
         self.state = state
 
 
+@loads(None)
 class ModelConfig(SeededModuleConfig):
     module_load_file: Optional[Path]
     device: Union[str, List[str]] = 'cpu'

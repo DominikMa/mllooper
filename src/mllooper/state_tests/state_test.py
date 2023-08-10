@@ -2,7 +2,7 @@ import logging
 from abc import ABC
 from typing import Optional
 
-from yaloader import YAMLBaseConfig
+from yaloader import YAMLBaseConfig, loads
 
 from mllooper import State
 
@@ -16,6 +16,7 @@ class StateTest(ABC):
         raise NotImplementedError
 
 
+@loads(None)
 class StateTestConfig(YAMLBaseConfig, ABC):
     name: Optional[str] = None
 

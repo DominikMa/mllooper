@@ -126,6 +126,7 @@ class ScalarMetric(Metric):
         self.reduction = reduction
 
 
+@loads(None)
 class ScalarMetricConfig(MetricConfig):
     reduction: Literal['mean', 'sum'] = 'mean'
 

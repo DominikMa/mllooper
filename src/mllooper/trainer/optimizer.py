@@ -5,6 +5,7 @@ from torch.optim import SGD, Adam
 from yaloader import YAMLBaseConfig, loads
 
 
+@loads(None)
 class OptimizerConfig(YAMLBaseConfig, ABC):
     params: Optional[List] = None
 
