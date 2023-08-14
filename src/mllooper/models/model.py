@@ -99,5 +99,5 @@ class Model(SeededModule, ABC):
 
 @loads(None)
 class ModelConfig(SeededModuleConfig):
-    module_load_file: Optional[Path]
+    module_load_file: Optional[Path] = None
     device: Union[str, List[str]] = 'cpu'
