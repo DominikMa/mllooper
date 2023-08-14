@@ -290,7 +290,7 @@ def build(ctx_object, config: str):
     buffering_log_handler.close()
 
     config = load_config(config_loader, config, auto_load=False, final=False)
-    print(yaml.dump(config.model_dump(), Dumper=YAMLConfigDumper, sort_keys=False))
+    print(yaml.dump(config, Dumper=YAMLConfigDumper, sort_keys=False))
 
 
 @cli.command()
