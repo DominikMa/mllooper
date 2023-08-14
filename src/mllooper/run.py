@@ -4,8 +4,8 @@ import logging
 import re
 import subprocess
 import sys
-from importlib.util import spec_from_file_location, module_from_spec, find_spec
 from importlib.metadata import distributions
+from importlib.util import spec_from_file_location, module_from_spec, find_spec
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Tuple
@@ -14,15 +14,14 @@ import click
 import git
 import yaml
 from click import BadParameter
-from pip._internal import vcs
 from pydantic import ValidationError
 from yaloader import ConfigLoader, YAMLConfigDumper
 from yaml import MarkedYAMLError
-from yaml.constructor import ConstructorError
 
 from mllooper import Module, ModuleConfig
 from mllooper.logging.handler import BufferingLogHandler
 from mllooper.logging.messages import ConfigLogMessage
+from mllooper.utils import git_get_url_rev_and_auth
 
 TEMP_DIR = TemporaryDirectory(prefix='mllooper_tmp_')
 
@@ -100,7 +99,7 @@ def import_module(module_name: str):
 
 
 def git_import_module(module_git_url: str):
-    url, rev, user_pass = vcs.git.Git.get_url_rev_and_auth(f'git+{module_git_url}')
+    url, rev, user_pass = git_get_url_rev_and_auth(f'git+{module_git_url}')
     name = url.split('/')[-1].split('.')[0]
 
     try:
