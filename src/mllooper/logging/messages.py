@@ -5,6 +5,7 @@ import numpy as np
 import torch
 from matplotlib import pyplot as plt
 from pydantic import validator, BaseModel, field_validator
+from pydantic_core.core_schema import FieldValidationInfo
 from torch import nn
 
 
@@ -52,11 +53,10 @@ class ImageLogMessage(TensorBoardLogMessage):
         arbitrary_types_allowed = True
 
     # noinspection PyArgumentList
-    # TODO: check if values still work
     @field_validator("image")
-    def validate_image_data(cls, image: np.ndarray, values: Dict[str, Any]):
+    def validate_image_data(cls, image: np.ndarray, info: FieldValidationInfo):
         """Validate that image data is between 0 and 255 and as `np.uin8`"""
-        ignore_img_data = values.get("ignore_img_data", False)
+        ignore_img_data = info.data.get("ignore_img_data", False)
         if not ignore_img_data:
             if image.max() > 255:
                 raise ValueError("Image contains values over 255")
@@ -109,9 +109,8 @@ class PointCloudLogMessage(TensorBoardLogMessage):
             raise ValueError("points array has to be of shape [N, 3]")
         return points
 
-    # TODO: check if values still work
     @field_validator("colors")
-    def validate_colors_data(cls, colors: Optional[torch.Tensor], values: Dict[str, Any]):
+    def validate_colors_data(cls, colors: Optional[torch.Tensor], info: FieldValidationInfo):
         """Validate that colors data is in shape [N, 3], shame shape as points
         and data is between 0 and 255 and as `np.uin8`
         """
@@ -122,7 +121,7 @@ class PointCloudLogMessage(TensorBoardLogMessage):
         if len(shape) != 2 or shape[1] != 3:
             raise ValueError("colors array has to be of shape [N, 3]")
 
-        points = values.get("points")
+        points = info.data.get("points")
         if shape != points.shape:
             raise ValueError("colors array and points array have to be of the same shape")
 
