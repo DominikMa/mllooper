@@ -283,14 +283,20 @@ def run(ctx_object, run_config: str):
 
 
 @cli.command()
+@click.option("--defaults/--no-defaults", "defaults", is_flag=True, default=True)
+@click.option("--unset/--no-unset", "unset", is_flag=True, default=False)
+@click.option("--final/--no-final", "final", is_flag=True, default=False)
 @click.argument('config', type=str)
 @click.pass_obj
-def build(ctx_object, config: str):
+def build(ctx_object, defaults: bool, unset: bool, final: bool, config: str):
     config_loader: ConfigLoader = ctx_object['config_loader']
     buffering_log_handler: BufferingLogHandler = ctx_object['buffering_log_handler']
     buffering_log_handler.close()
 
-    config = load_config(config_loader, config, auto_load=False, final=False)
+    config = load_config(config_loader, config, final=final)
+
+    YAMLConfigDumper.exclude_unset = not unset
+    YAMLConfigDumper.exclude_defaults = not defaults
     print(yaml.dump(config, Dumper=YAMLConfigDumper, sort_keys=False))
 
 
