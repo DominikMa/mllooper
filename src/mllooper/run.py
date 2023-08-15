@@ -144,15 +144,15 @@ def git_import_module(module_git_url: str):
     return clone_path
 
 
-def load_config(config_loader: ConfigLoader, run_config: str, auto_load: bool = False, final: bool = True):
+def load_config(config_loader: ConfigLoader, run_config: str, final: bool = True):
     if (path := Path(run_config)).is_file() or Path(run_config).with_suffix('.yaml').is_file():
         try:
-            constructed_run = config_loader.construct_from_file(path, auto_load=auto_load, final=final)
+            constructed_run = config_loader.construct_from_file(path, final=final)
         except (FileNotFoundError, MarkedYAMLError, ValidationError) as e:
             raise BadParameter(f"{e}") from e
     else:
         try:
-            constructed_run = config_loader.construct_from_string(run_config, auto_load=auto_load, final=final)
+            constructed_run = config_loader.construct_from_string(run_config, final=final)
         except (MarkedYAMLError, ValidationError) as e:
             raise BadParameter(f"{e}") from e
     return constructed_run
@@ -244,28 +244,21 @@ def cli(
 
 
 @cli.command()
-@click.option("--autoload/--no-autoload", "auto_load", default=False)
 @click.argument('run_config', type=str)
 @click.pass_obj
-def run(ctx_object, run_config: str, auto_load: bool):
+def run(ctx_object, run_config: str):
     config_loader = ctx_object['config_loader']
     buffering_log_handler = ctx_object['buffering_log_handler']
 
     previous_handlers = logging.getLogger().handlers.copy()
 
     # load and run the run configuration
-    constructed_run = load_config(config_loader, run_config, auto_load)
+    constructed_run = load_config(config_loader, run_config, final=True)
 
-    if auto_load:
-        if not isinstance(constructed_run, Module):
-            raise BadParameter(f"The run configuration RUN_CONFIG has to be a mllooper Module."
-                               f"Got {type(constructed_run)} instead.")
-        loaded_run = constructed_run
-    else:
-        if not isinstance(constructed_run, ModuleConfig):
-            raise BadParameter(f"The run configuration RUN_CONFIG has to be a mllooper Module. "
-                               f"Got {type(constructed_run)} instead.")
-        loaded_run = constructed_run.load()
+    if not isinstance(constructed_run, ModuleConfig):
+        raise BadParameter(f"The run configuration RUN_CONFIG has to be a mllooper ModuleConfig. "
+                           f"Got {type(constructed_run)} instead.")
+    loaded_run = constructed_run.load()
 
     new_handlers = [handler for handler in logging.getLogger().handlers if handler not in previous_handlers]
     buffering_log_handler.set_targets(new_handlers)
