@@ -268,6 +268,8 @@ def run(ctx_object, run_config: str, auto_load: bool):
     logger.info(f"Installed packages:\n{installed_packages}")
 
     # Log config
+    original_exclude_unset = YAMLConfigDumper.exclude_unset
+    original_exclude_defaults = YAMLConfigDumper.exclude_defaults
     YAMLConfigDumper.exclude_unset = False
     YAMLConfigDumper.exclude_defaults = False
     config = yaml.dump(constructed_run, Dumper=YAMLConfigDumper, sort_keys=False)
@@ -277,6 +279,8 @@ def run(ctx_object, run_config: str, auto_load: bool):
     YAMLConfigDumper.exclude_defaults = True
     config = yaml.dump(constructed_run, Dumper=YAMLConfigDumper, sort_keys=False)
     logger.info(ConfigLogMessage(name='config', config=config))
+    YAMLConfigDumper.exclude_unset = original_exclude_unset
+    YAMLConfigDumper.exclude_defaults = original_exclude_defaults
 
     loaded_run.run()
 
