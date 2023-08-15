@@ -68,6 +68,7 @@ def import_from_disk(module_name: str):
     module = module_from_spec(spec)
     sys.modules[name] = module
     spec.loader.exec_module(module)
+    # add parent path to sys path to be able to reimport the module on multiprocessing
     sys.path.insert(0, str(module_path.parent))
 
 
@@ -204,6 +205,7 @@ def cli(
             raise BadParameter(f"{e}") from e
 
     # import modules before creating the loader
+    # keep a reference of all temp dirs to prevent them being unlinked
     temp_dirs = []
     for module_git_url in git_import_modules:
         try:
