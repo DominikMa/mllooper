@@ -62,12 +62,14 @@ def import_from_disk(module_name: str):
         raise ModuleNotFoundError
 
     if find_spec(name) is not None:
-        name = f"{name}_mllooper_auto_import"
+        raise RuntimeError(f'Can not import {module_name} as {name} because a module with the name {name} is already loaded.')
 
     spec = spec_from_file_location(name, location)
     module = module_from_spec(spec)
     sys.modules[name] = module
     spec.loader.exec_module(module)
+    # add parent path to sys path to be able to reimport the module on multiprocessing
+    sys.path.insert(0, str(module_path.parent))
 
 
 def import_module(module_name: str):
@@ -139,6 +141,8 @@ def git_import_module(module_git_url: str):
     except ModuleNotFoundError as error:
         raise ModuleNotFoundError(f"Could not import {module_git_url}: {error}") from error
 
+    return clone_path
+
 
 def load_config(config_loader: ConfigLoader, run_config: str, auto_load: bool = False, final: bool = True):
     if (path := Path(run_config)).is_file() or Path(run_config).with_suffix('.yaml').is_file():
@@ -201,9 +205,12 @@ def cli(
             raise BadParameter(f"{e}") from e
 
     # import modules before creating the loader
+    # keep a reference of all temp dirs to prevent them being unlinked
+    temp_dirs = []
     for module_git_url in git_import_modules:
         try:
-            git_import_module(module_git_url)
+            temp_dir = git_import_module(module_git_url)
+            temp_dirs.append(temp_dir)
         except ModuleNotFoundError as e:
             raise BadParameter(f"{e}") from e
 
@@ -233,6 +240,7 @@ def cli(
 
     ctx.obj['config_loader'] = config_loader
     ctx.obj['buffering_log_handler'] = buffering_log_handler
+    ctx.obj['temp_dirs'] = temp_dirs
 
 
 @cli.command()
