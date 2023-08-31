@@ -231,6 +231,10 @@ class LooperConfig(ModuleConfig, extra=Extra.allow):
             else:
                 loaded_modules[key] = module_config.load()
         config_data['modules'] = loaded_modules
+
+        if len(config_data['modules']) > 0:
+            self.__pydantic_fields_set__.add('modules')
+
         return self._loaded_class(**config_data)
 
     @model_validator(mode='before')
