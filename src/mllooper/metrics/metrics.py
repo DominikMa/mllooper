@@ -13,12 +13,12 @@ class CrossEntropyLoss(ScalarMetric):
         self.loss_function = torch.nn.CrossEntropyLoss(weight=None, reduction=self.reduction)
 
     def calculate_metric(self, state: State) -> torch.Tensor:
-        dataset_state: DatasetState = state.dataset_state
-        model_state: ModelState = state.model_state
+        dataset_state: DatasetState = getattr(state, self.dataset_state_name)
+        model_state: ModelState = getattr(state, self.model_state_name)
 
         if 'class_id' not in dataset_state.data:
             raise ValueError(f"{self.name} requires a tensor with the class ids to be in "
-                             f"state.dataset_state.data['class_id']")
+                             f"state.{self.dataset_state_name}.data['class_id']")
         loss = self.loss_function(input=model_state.output, target=dataset_state.data['class_id'])
         return loss
 
@@ -38,12 +38,12 @@ class MSELoss(ScalarMetric):
         self.loss_function = torch.nn.MSELoss(reduction=self.reduction)
 
     def calculate_metric(self, state: State) -> torch.Tensor:
-        dataset_state: DatasetState = state.dataset_state
-        model_state: ModelState = state.model_state
+        dataset_state: DatasetState = getattr(state, self.dataset_state_name)
+        model_state: ModelState = getattr(state, self.model_state_name)
 
         if 'target' not in dataset_state.data:
             raise ValueError(f"{self.name} requires a tensor with the targets to be in "
-                             f"state.dataset_state.data['target']")
+                             f"state.{self.dataset_state_name}.data['target']")
         loss = self.loss_function(input=model_state.output.squeeze(), target=dataset_state.data['target'])
         return loss
 
@@ -63,12 +63,12 @@ class MAELoss(ScalarMetric):
         self.loss_function = torch.nn.L1Loss(reduction=self.reduction)
 
     def calculate_metric(self, state: State) -> torch.Tensor:
-        dataset_state: DatasetState = state.dataset_state
-        model_state: ModelState = state.model_state
+        dataset_state: DatasetState = getattr(state, self.dataset_state_name)
+        model_state: ModelState = getattr(state, self.model_state_name)
 
         if 'target' not in dataset_state.data:
             raise ValueError(f"{self.name} requires a tensor with the targets to be in "
-                             f"state.dataset_state.data['target']")
+                             f"state.{self.dataset_state_name}.data['target']")
         loss = self.loss_function(input=model_state.output.squeeze(), target=dataset_state.data['target'])
         return loss
 

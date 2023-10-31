@@ -19,7 +19,11 @@ class MetricState(State):
 
 
 class Metric(Module, ABC):
-    def __init__(self, requires_grad: bool = False, **kwargs):
+    def __init__(self, requires_grad: bool = False,
+                 dataset_state_name: Optional[str] = 'dataset_state',
+                 looper_state_name: Optional[str] = 'looper_state',
+                 model_state_name: Optional[str] = 'model_state',
+                 **kwargs):
         super().__init__(**kwargs)
         self.state_name = self.name
         self.requires_grad = requires_grad
@@ -28,10 +32,14 @@ class Metric(Module, ABC):
 
         self._last_log_time_per_dataset = {}
 
+        self.dataset_state_name: Optional[str] = dataset_state_name
+        self.looper_state_name: Optional[str] = looper_state_name
+        self.model_state_name: Optional[str] = model_state_name
+
     def log(self, state: State) -> None:
         """Save last log time per dataset name."""
         try:
-            dataset_state: DatasetState = state.dataset_state
+            dataset_state: DatasetState = getattr(state, self.dataset_state_name)
         except AttributeError as e:
             self.logger.warning(e)
             return
@@ -47,7 +55,7 @@ class Metric(Module, ABC):
         self._log(state)
 
     def step(self, state: State) -> None:
-        dataset_state: DatasetState = state.dataset_state
+        dataset_state: DatasetState = getattr(state, self.dataset_state_name)
         self.state.output = None
 
         with torch.set_grad_enabled(dataset_state.train and self.requires_grad):
@@ -89,6 +97,9 @@ class Metric(Module, ABC):
 @loads(None)
 class MetricConfig(ModuleConfig):
     requires_grad: bool = False
+    dataset_state_name: Optional[str] = 'dataset_state'
+    looper_state_name: Optional[str] = 'looper_state'
+    model_state_name: Optional[str] = 'model_state'
 
 
 class ScalarMetric(Metric):
@@ -101,8 +112,8 @@ class ScalarMetric(Metric):
         raise NotImplementedError
 
     def _log(self, state: State) -> None:
-        looper_state: LooperState = state.looper_state
-        dataset_state: DatasetState = state.dataset_state
+        looper_state: LooperState = getattr(state, self.looper_state_name)
+        dataset_state: DatasetState = getattr(state, self.dataset_state_name)
 
         output: torch.Tensor = self.state.output
 
@@ -158,8 +169,8 @@ class AveragedMetric(ScalarMetric):
         self.metric.log(state)
 
     def _log(self, state: State) -> None:
-        looper_state: LooperState = state.looper_state
-        dataset_state: DatasetState = state.dataset_state
+        looper_state: LooperState = getattr(state, self.looper_state_name)
+        dataset_state: DatasetState = getattr(state, self.dataset_state_name)
 
         dataset_average = self.average_per_dataset.get(dataset_state.name, None)
         if dataset_average is not None:
@@ -169,7 +180,7 @@ class AveragedMetric(ScalarMetric):
             ))
 
     def step(self, state: State) -> None:
-        dataset_state: DatasetState = state.dataset_state
+        dataset_state: DatasetState = getattr(state, self.dataset_state_name)
         self.state.output = None
         self.state.average = None
 
@@ -256,8 +267,8 @@ class MeanMetric(ScalarMetric):
         self.metric.log(state)
 
     def _log(self, state: State) -> None:
-        looper_state: LooperState = state.looper_state
-        dataset_state: DatasetState = state.dataset_state
+        looper_state: LooperState = getattr(state, self.looper_state_name)
+        dataset_state: DatasetState = getattr(state, self.dataset_state_name)
 
         dataset_mean = self.mean_per_dataset.get(dataset_state.name, None)
         if dataset_mean is not None:
@@ -267,7 +278,7 @@ class MeanMetric(ScalarMetric):
             ))
 
     def step(self, state: State) -> None:
-        dataset_state: DatasetState = state.dataset_state
+        dataset_state: DatasetState = getattr(state, self.dataset_state_name)
         self.state.output = None
         self.state.mean = None
 
@@ -355,8 +366,8 @@ class RunningMeanMetric(ScalarMetric):
         self.metric.log(state)
 
     def _log(self, state: State) -> None:
-        looper_state: LooperState = state.looper_state
-        dataset_state: DatasetState = state.dataset_state
+        looper_state: LooperState = getattr(state, self.looper_state_name)
+        dataset_state: DatasetState = getattr(state, self.dataset_state_name)
 
         dataset_values: List[torch.Tensor] = list(self.deque_per_dataset[dataset_state.name])
         if dataset_values is not None and len(dataset_values) > 0:
@@ -367,7 +378,7 @@ class RunningMeanMetric(ScalarMetric):
             ))
 
     def step(self, state: State) -> None:
-        dataset_state: DatasetState = state.dataset_state
+        dataset_state: DatasetState = getattr(state, self.dataset_state_name)
         self.state.output = None
         self.state.running_mean = None
 
