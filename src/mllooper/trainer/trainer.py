@@ -13,7 +13,10 @@ from mllooper.trainer.optimizer import OptimizerConfig
 
 class Trainer(Module):
     def __init__(self, optimizer: OptimizerConfig, enable_cudnn_auto_tuner: bool = True,
-                 enable_grad_scaler: bool = False, **kwargs):
+                 enable_grad_scaler: bool = False,
+                 dataset_state_name: str = 'dataset_state',
+                 loss_state_name: str = 'loss_state',
+                 **kwargs):
         super().__init__(**kwargs)
         self._optimizer_config = optimizer
         self.optimizer: Optional[Optimizer] = None
@@ -26,6 +29,9 @@ class Trainer(Module):
 
         self.grad_scaler = torch.cuda.amp.GradScaler() if self.enable_grad_scaler else None
 
+        self.dataset_state_name: str = dataset_state_name
+        self.loss_state_name: str = loss_state_name
+
     def initialise(self, modules: Dict[str, Module]) -> None:
         try:
             model = modules['model']
@@ -37,10 +43,10 @@ class Trainer(Module):
         self.optimizer = self._optimizer_config.load()
 
     def step(self, state: State) -> None:
-        dataset_state: DatasetState = state.dataset_state
+        dataset_state: DatasetState = getattr(state, self.dataset_state_name)
 
         if dataset_state.train:
-            loss_state: MetricState = state.loss_state
+            loss_state: MetricState = getattr(state, self.loss_state_name)
             loss: torch.Tensor = loss_state.output
 
             if self.enable_grad_scaler:
@@ -60,6 +66,8 @@ class TrainerConfig(ModuleConfig):
     optimizer: OptimizerConfig
     enable_cudnn_auto_tuner: bool = True
     enable_grad_scaler: bool = False
+    dataset_state_name: str = 'dataset_state'
+    loss_state_name: str = 'loss_state'
 
 
 class PrecisionAutoCast(Module):
