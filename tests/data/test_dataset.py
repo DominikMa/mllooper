@@ -67,12 +67,13 @@ def test_data_is_on_cpu(constant_dataset_class, empty_state):
     assert empty_state.dataset_state.data.device == torch.device('cpu')
 
 
+@pytest.mark.slow
 def test_data_is_on_gpu(constant_dataset_class, empty_state):
     if not torch.cuda.is_available():
         pytest.skip("no gpu available")
     dataset = constant_dataset_class(device='cuda')
     dataset.step(empty_state)
-    assert empty_state.dataset_state.data.device == torch.device('cuda')
+    assert empty_state.dataset_state.data.device.type == 'cuda'
 
 
 def test_fixed_indexing_no_multiprocessing(return_index_dataset_class, empty_state):
