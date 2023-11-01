@@ -74,7 +74,8 @@ class Dataset(SeededModule, ABC):
     @property
     def data_loader(self):
         if self._data_loader is None:
-            self._data_loader = TorchDataLoader(self, worker_init_fn=self._worker_init_fn, **self.data_loader_args.dict())
+            self._data_loader = TorchDataLoader(self, worker_init_fn=self._worker_init_fn,
+                                                **self.data_loader_args.model_dump())
         return self._data_loader
 
     def step(self, state: State) -> None:
@@ -130,7 +131,7 @@ class Dataset(SeededModule, ABC):
     @staticmethod
     def _worker_init_fn(x):
         worker_info = torch.utils.data.get_worker_info()
-        dataset = worker_info.dataset
+        dataset: Dataset = worker_info.dataset
         dataset.random.seed(dataset.random.randint(-999999, 999999) + x)
 
     def state_dict(self) -> Dict[str, Any]:
@@ -139,7 +140,7 @@ class Dataset(SeededModule, ABC):
             train=self.train,
             type=self.type,
             device=str(self.device),
-            data_loader_args=self.data_loader_args.dict(),
+            data_loader_args=self.data_loader_args.model_dump(),
             state=self.state
         )
         return state_dict
@@ -250,7 +251,7 @@ class PartitionedDataset(Dataset, ABC):
         state_dict = super(PartitionedDataset, self).state_dict()
         state_dict.update(
             partition=self.partition,
-            partitions={partition_name: partition.dict() for partition_name, partition in self.partitions.items()}
+            partitions={partition_name: partition.model_dump() for partition_name, partition in self.partitions.items()}
         )
         return state_dict
 
