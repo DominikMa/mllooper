@@ -18,13 +18,18 @@ class ModelState(State):
 
 class Model(SeededModule, ABC):
     def __init__(self, torch_model: nn.Module, module_load_file: Optional[Path] = None,
-                 device: Union[str, List[str]] = 'cpu', **kwargs):
+                 device: Union[str, List[str]] = 'cpu',
+                 dataset_state_name: str = 'dataset_state',
+                 model_state_name: str = 'model_state',
+                 **kwargs):
         super().__init__(**kwargs)
         devices = device if isinstance(device, list) else [device]
         self.devices = [torch.device(device) for device in devices]
         self.device = self.devices[0]
         self.module = torch_model.to(self.device)
         self._parallel_module = self.module if len(self.devices) == 1 else nn.DataParallel(self.module, device_ids=self.devices)
+        self.dataset_state_name: str = dataset_state_name
+        self.model_state_name: str = model_state_name
 
         if module_load_file:
             module_state_dict = torch.load(module_load_file, map_location=self.device)
@@ -33,7 +38,7 @@ class Model(SeededModule, ABC):
         self.state = ModelState()
 
     def step(self, state: State) -> None:
-        dataset_state: DatasetState = state.dataset_state
+        dataset_state: DatasetState = getattr(state, self.dataset_state_name)
         self.state.output = None
 
         module_input = self.format_module_input(dataset_state.data)
@@ -45,7 +50,7 @@ class Model(SeededModule, ABC):
             module_output = self._parallel_module(module_input)
 
         self.state.output = self.format_module_output(module_output)
-        state.model_state = self.state
+        setattr(state, self.model_state_name, self.state)
 
     @staticmethod
     def format_module_input(data: Any) -> Any:
@@ -101,3 +106,5 @@ class Model(SeededModule, ABC):
 class ModelConfig(SeededModuleConfig):
     module_load_file: Optional[Path] = None
     device: Union[str, List[str]] = 'cpu'
+    dataset_state_name: str = 'dataset_state',
+    model_state_name: str = 'model_state',

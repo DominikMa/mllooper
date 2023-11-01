@@ -57,13 +57,14 @@ class Looper(Module):
     never see the state the lopper lives in.
     """
 
-    def __init__(self, modules: Dict[str, Union[Module, str]], **kwargs):
+    def __init__(self, modules: Dict[str, Union[Module, str]], looper_state_name: str = 'looper_state', **kwargs):
         super().__init__(**kwargs)
         self.modules = modules
 
         # The state for the modules inside the loop
+        self.looper_state_name: str = looper_state_name
         self.inner_state: State = State()
-        self.inner_state.looper_state = LooperState()
+        setattr(self.inner_state, self.looper_state_name, LooperState())
 
         self._iterations_per_second = None
         self._last_log_iteration_count = 0
@@ -115,7 +116,7 @@ class Looper(Module):
         # Add the inner state as module state to the outer state
         setattr(state, self.name, self.inner_state)
 
-        looper_state: LooperState = self.inner_state.looper_state
+        looper_state: LooperState = getattr(self.inner_state, self.looper_state_name)
 
         # Reset step counter and flag
         looper_state.step_iteration = 0
@@ -143,11 +144,12 @@ class Looper(Module):
         :param State state: The current state
         """
         if self.log(state):
-            iterations_since_last_log = self.inner_state.looper_state.total_iteration - self._last_log_iteration_count
+            looper_state: LooperState = getattr(self.inner_state, self.looper_state_name)
+            iterations_since_last_log = looper_state.total_iteration - self._last_log_iteration_count
             now = datetime.datetime.now()
             time_since_last_log = now - self._last_log_iteration_time
 
-            self._last_log_iteration_count = self.inner_state.looper_state.total_iteration
+            self._last_log_iteration_count = looper_state.total_iteration
             self._last_log_iteration_time = now
 
             iterations_per_second = iterations_since_last_log / time_since_last_log.total_seconds()
@@ -158,7 +160,7 @@ class Looper(Module):
                 self._iterations_per_second = iterations_per_second
 
             # self.logger.info(f"Doing {self._iterations_per_second:0.2f} iterations per second")
-            self.logger.info(f"Iteration {self.inner_state.looper_state.total_iteration} "
+            self.logger.info(f"Iteration {looper_state.total_iteration} "
                              f"({self._iterations_per_second:0.2f} it/s)")
 
         for _, module in iterate_modules(self.modules, skip_references=True):
@@ -207,6 +209,7 @@ class Looper(Module):
 @loads(Looper)
 class LooperConfig(ModuleConfig, extra=Extra.allow):
     modules: Dict[str, Union[ModuleConfig, str]] = {}
+    looper_state_name: str = 'looper_state'
 
     def load(self, *args, **kwargs):
         all_model_field_names = {field_name for field_name in self.model_fields.keys()}
@@ -270,13 +273,15 @@ class LooperConfig(ModuleConfig, extra=Extra.allow):
 
 class LooperIterationStop(Module):
     def __init__(self, step_iteration_limit: Optional[int] = None,
-                 total_iteration_limit: Optional[int] = None, **kwargs):
+                 total_iteration_limit: Optional[int] = None,
+                 looper_state_name: str = 'looper_state', **kwargs):
         super().__init__(**kwargs)
         self.step_iteration_limit = step_iteration_limit
         self.total_iteration_limit = total_iteration_limit
+        self.looper_state_name = looper_state_name
 
     def step(self, state: State) -> None:
-        looper_state: LooperState = state.looper_state
+        looper_state: LooperState = getattr(state, self.looper_state_name)
         if self.step_iteration_limit and looper_state.step_iteration >= self.step_iteration_limit:
             looper_state.stop_step = True
         if self.total_iteration_limit and looper_state.total_iteration >= self.total_iteration_limit:
@@ -306,3 +311,4 @@ class LooperIterationStop(Module):
 class LooperIterationStopConfig(ModuleConfig):
     step_iteration_limit: Optional[int] = None
     total_iteration_limit: Optional[int] = None
+    looper_state_name: str = 'looper_state'
