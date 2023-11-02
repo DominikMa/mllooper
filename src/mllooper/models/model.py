@@ -106,5 +106,5 @@ class Model(SeededModule, ABC):
 class ModelConfig(SeededModuleConfig):
     module_load_file: Optional[Path] = None
     device: Union[str, List[str]] = 'cpu'
-    dataset_state_name: str = 'dataset_state',
-    model_state_name: str = 'model_state',
+    dataset_state_name: str = 'dataset_state'
+    model_state_name: str = 'model_state'
