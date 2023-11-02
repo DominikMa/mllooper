@@ -502,13 +502,13 @@ class MetricListConfig(ModuleConfig):
 
 class Loss(ScalarMetric):
     def __init__(self, metrics: List[ScalarMetric], weights: Optional[List[float]] = None,
-                 requires_grad: bool = True, **kwargs):
+                 requires_grad: bool = True, loss_state_name: str = 'loss_state', **kwargs):
         if not requires_grad:
             self.logger.warning(f"requires_grad of {self.name} is always set to True.")
         name = kwargs.pop('name')
         name = f"Loss({', '.join(map(operator.attrgetter('name'), metrics))})" if name is None else name
         super().__init__(name=name, requires_grad=True, **kwargs)
-        self.state_name = 'loss_state'
+        self.state_name = loss_state_name
 
         self.metrics = metrics
         self.weights = weights
@@ -581,6 +581,7 @@ class LossConfig(MetricConfig):
     requires_grad: bool = True
     metrics: List[ScalarMetricConfig]
     weights: Optional[List[float]] = None
+    loss_state_name: str = 'loss_state'
 
     def load(self, *args, **kwargs):
         config_data = dict(self)
