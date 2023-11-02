@@ -19,6 +19,7 @@ class ModelState(State):
 class Model(SeededModule, ABC):
     def __init__(self, torch_model: nn.Module, module_load_file: Optional[Path] = None,
                  device: Union[str, List[str]] = 'cpu',
+                 output_device: Optional[str] = None,
                  dataset_state_name: str = 'dataset_state',
                  model_state_name: str = 'model_state',
                  force_gradient: Optional[bool] = None,
@@ -27,8 +28,9 @@ class Model(SeededModule, ABC):
         devices = device if isinstance(device, list) else [device]
         self.devices = [torch.device(device) for device in devices]
         self.device = self.devices[0]
+        self.output_device = output_device
         self.module = torch_model.to(self.device)
-        self._parallel_module = self.module if len(self.devices) == 1 else nn.DataParallel(self.module, device_ids=self.devices)
+        self._parallel_module = self.module if len(self.devices) == 1 else nn.DataParallel(self.module, device_ids=self.devices, output_device=output_device)
         self.dataset_state_name: str = dataset_state_name
         self.model_state_name: str = model_state_name
 
@@ -108,6 +110,7 @@ class Model(SeededModule, ABC):
 class ModelConfig(SeededModuleConfig):
     module_load_file: Optional[Path] = None
     device: Union[str, List[str]] = 'cpu'
+    output_device: Optional[str] = None
     dataset_state_name: str = 'dataset_state'
     model_state_name: str = 'model_state'
     force_gradient: Optional[bool] = None
