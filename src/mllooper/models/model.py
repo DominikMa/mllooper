@@ -21,6 +21,7 @@ class Model(SeededModule, ABC):
                  device: Union[str, List[str]] = 'cpu',
                  dataset_state_name: str = 'dataset_state',
                  model_state_name: str = 'model_state',
+                 force_gradient: Optional[bool] = None,
                  **kwargs):
         super().__init__(**kwargs)
         devices = device if isinstance(device, list) else [device]
@@ -35,6 +36,7 @@ class Model(SeededModule, ABC):
             module_state_dict = torch.load(module_load_file, map_location=self.device)
             self.module.load_state_dict(module_state_dict)
 
+        self.force_gradient: Optional[bool] = force_gradient
         self.state = ModelState()
 
     def step(self, state: State) -> None:
@@ -45,7 +47,7 @@ class Model(SeededModule, ABC):
 
         self.module.train() if dataset_state.train else self.module.eval()
         self._parallel_module.train() if dataset_state.train else self._parallel_module.eval()
-        with torch.set_grad_enabled(dataset_state.train):
+        with torch.set_grad_enabled(self.force_gradient if self.force_gradient is not None else dataset_state.train):
             # module_output = self.module(module_input)
             module_output = self._parallel_module(module_input)
 
@@ -108,3 +110,4 @@ class ModelConfig(SeededModuleConfig):
     device: Union[str, List[str]] = 'cpu'
     dataset_state_name: str = 'dataset_state'
     model_state_name: str = 'model_state'
+    force_gradient: Optional[bool] = None
