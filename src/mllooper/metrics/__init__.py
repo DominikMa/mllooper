@@ -21,5 +21,6 @@ from mllooper.metrics.metric import (
 from mllooper.metrics.metrics import (
     CrossEntropyLoss,
     MSELoss,
-    MAELoss
+    MAELoss,
+    TopK,
 )
