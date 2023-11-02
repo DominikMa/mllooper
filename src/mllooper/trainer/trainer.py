@@ -16,6 +16,7 @@ class Trainer(Module):
                  enable_grad_scaler: bool = False,
                  dataset_state_name: str = 'dataset_state',
                  loss_state_name: str = 'loss_state',
+                 model_module_name: str = 'model',
                  **kwargs):
         super().__init__(**kwargs)
         self._optimizer_config = optimizer
@@ -31,10 +32,11 @@ class Trainer(Module):
 
         self.dataset_state_name: str = dataset_state_name
         self.loss_state_name: str = loss_state_name
+        self.model_module_name = model_module_name
 
     def initialise(self, modules: Dict[str, Module]) -> None:
         try:
-            model = modules['model']
+            model = modules[self.model_module_name]
             assert isinstance(model, Model)
             self._optimizer_config.params = model.trainable_parameters(self._optimizer_config.params)
         except KeyError:
@@ -68,6 +70,7 @@ class TrainerConfig(ModuleConfig):
     enable_grad_scaler: bool = False
     dataset_state_name: str = 'dataset_state'
     loss_state_name: str = 'loss_state'
+    model_module_name: str = 'model'
 
 
 class PrecisionAutoCast(Module):
