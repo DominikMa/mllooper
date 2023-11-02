@@ -110,4 +110,4 @@ class ModelConfig(SeededModuleConfig):
     device: Union[str, List[str]] = 'cpu'
     dataset_state_name: str = 'dataset_state'
     model_state_name: str = 'model_state'
-    force_gradient: Optional[bool]
+    force_gradient: Optional[bool] = None
