@@ -57,14 +57,14 @@ class Looper(Module):
     never see the state the lopper lives in.
     """
 
-    def __init__(self, modules: Dict[str, Union[Module, str]], looper_state_name: str = 'looper_state', **kwargs):
+    def __init__(self, modules: Dict[str, Union[Module, str]], state_name_looper: str = 'looper_state', **kwargs):
         super().__init__(**kwargs)
         self.modules = modules
 
         # The state for the modules inside the loop
-        self.looper_state_name: str = looper_state_name
+        self.state_name_looper: str = state_name_looper
         self.inner_state: State = State()
-        setattr(self.inner_state, self.looper_state_name, LooperState())
+        setattr(self.inner_state, self.state_name_looper, LooperState())
 
         self._iterations_per_second = None
         self._last_log_iteration_count = 0
@@ -116,7 +116,7 @@ class Looper(Module):
         # Add the inner state as module state to the outer state
         setattr(state, self.name, self.inner_state)
 
-        looper_state: LooperState = getattr(self.inner_state, self.looper_state_name)
+        looper_state: LooperState = getattr(self.inner_state, self.state_name_looper)
 
         # Reset step counter and flag
         looper_state.step_iteration = 0
@@ -144,7 +144,7 @@ class Looper(Module):
         :param State state: The current state
         """
         if self.log(state):
-            looper_state: LooperState = getattr(self.inner_state, self.looper_state_name)
+            looper_state: LooperState = getattr(self.inner_state, self.state_name_looper)
             iterations_since_last_log = looper_state.total_iteration - self._last_log_iteration_count
             now = datetime.datetime.now()
             time_since_last_log = now - self._last_log_iteration_time
@@ -209,7 +209,7 @@ class Looper(Module):
 @loads(Looper)
 class LooperConfig(ModuleConfig, extra=Extra.allow):
     modules: Dict[str, Union[ModuleConfig, str]] = {}
-    looper_state_name: str = 'looper_state'
+    state_name_looper: str = 'looper_state'
 
     def load(self, *args, **kwargs):
         all_model_field_names = {field_name for field_name in self.model_fields.keys()}
@@ -274,14 +274,14 @@ class LooperConfig(ModuleConfig, extra=Extra.allow):
 class LooperIterationStop(Module):
     def __init__(self, step_iteration_limit: Optional[int] = None,
                  total_iteration_limit: Optional[int] = None,
-                 looper_state_name: str = 'looper_state', **kwargs):
+                 state_name_looper: str = 'looper_state', **kwargs):
         super().__init__(**kwargs)
         self.step_iteration_limit = step_iteration_limit
         self.total_iteration_limit = total_iteration_limit
-        self.looper_state_name = looper_state_name
+        self.state_name_looper = state_name_looper
 
     def step(self, state: State) -> None:
-        looper_state: LooperState = getattr(state, self.looper_state_name)
+        looper_state: LooperState = getattr(state, self.state_name_looper)
         if self.step_iteration_limit and looper_state.step_iteration >= self.step_iteration_limit:
             looper_state.stop_step = True
         if self.total_iteration_limit and looper_state.total_iteration >= self.total_iteration_limit:
@@ -311,4 +311,4 @@ class LooperIterationStop(Module):
 class LooperIterationStopConfig(ModuleConfig):
     step_iteration_limit: Optional[int] = None
     total_iteration_limit: Optional[int] = None
-    looper_state_name: str = 'looper_state'
+    state_name_looper: str = 'looper_state'

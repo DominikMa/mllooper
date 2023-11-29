@@ -48,7 +48,7 @@ class Dataset(SeededModule, ABC):
 
     def __init__(self, train: bool = True, data_loader_args: Optional[DataLoaderArgs] = None,
                  dataset_type: Optional[str] = None, device: str = 'cpu',
-                 dataset_state_name: str = 'dataset_state',
+                 state_name_dataset: str = 'dataset_state',
                  **kwargs):
 
         self.type = dataset_type
@@ -66,7 +66,7 @@ class Dataset(SeededModule, ABC):
         self._data_iterator: Optional[_BaseDataLoaderIter] = None
 
         self.state = DatasetState(name=self.name, train=train, type=self.type)
-        self.dataset_state_name: str = dataset_state_name
+        self.state_name_dataset: str = state_name_dataset
 
     def __getitem__(self, index: int):
         raise NotImplementedError
@@ -99,7 +99,7 @@ class Dataset(SeededModule, ABC):
         data = self.move_data_to_device(data)
 
         self.state.data = data
-        setattr(state, self.dataset_state_name, self.state)
+        setattr(state, self.state_name_dataset, self.state)
 
     def initialise_torch_data_loader(self):
         if self._data_iterator is None:
@@ -172,7 +172,7 @@ class DatasetConfig(SeededModuleConfig, ABC):
     data_loader_args: DataLoaderArgs = Field(default_factory=DataLoaderArgs)
     dataset_type: Optional[str] = None
     device: str = 'cpu'
-    dataset_state_name: str = 'dataset_state'
+    state_name_dataset: str = 'dataset_state'
 
 
 class IterableDataset(TorchIterableDataset, Dataset, ABC):

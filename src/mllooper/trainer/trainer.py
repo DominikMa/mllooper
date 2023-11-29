@@ -14,8 +14,8 @@ from mllooper.trainer.optimizer import OptimizerConfig
 class Trainer(Module):
     def __init__(self, optimizer: OptimizerConfig, enable_cudnn_auto_tuner: bool = True,
                  enable_grad_scaler: bool = False,
-                 dataset_state_name: str = 'dataset_state',
-                 loss_state_name: str = 'loss_state',
+                 state_name_dataset: str = 'dataset_state',
+                 state_name_loss: str = 'loss_state',
                  model_module_name: str = 'model',
                  **kwargs):
         super().__init__(**kwargs)
@@ -30,8 +30,8 @@ class Trainer(Module):
 
         self.grad_scaler = torch.cuda.amp.GradScaler() if self.enable_grad_scaler else None
 
-        self.dataset_state_name: str = dataset_state_name
-        self.loss_state_name: str = loss_state_name
+        self.state_name_dataset: str = state_name_dataset
+        self.state_name_loss: str = state_name_loss
         self.model_module_name = model_module_name
 
     def initialise(self, modules: Dict[str, Module]) -> None:
@@ -45,10 +45,10 @@ class Trainer(Module):
         self.optimizer = self._optimizer_config.load()
 
     def step(self, state: State) -> None:
-        dataset_state: DatasetState = getattr(state, self.dataset_state_name)
+        dataset_state: DatasetState = getattr(state, self.state_name_dataset)
 
         if dataset_state.train:
-            loss_state: MetricState = getattr(state, self.loss_state_name)
+            loss_state: MetricState = getattr(state, self.state_name_loss)
             loss: torch.Tensor = loss_state.output
 
             if self.enable_grad_scaler:
@@ -68,8 +68,8 @@ class TrainerConfig(ModuleConfig):
     optimizer: OptimizerConfig
     enable_cudnn_auto_tuner: bool = True
     enable_grad_scaler: bool = False
-    dataset_state_name: str = 'dataset_state'
-    loss_state_name: str = 'loss_state'
+    state_name_dataset: str = 'dataset_state'
+    state_name_loss: str = 'loss_state'
     model_module_name: str = 'model'
 
 
