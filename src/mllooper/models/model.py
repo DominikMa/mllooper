@@ -20,8 +20,8 @@ class Model(SeededModule, ABC):
     def __init__(self, torch_model: nn.Module, module_load_file: Optional[Path] = None,
                  device: Union[str, List[str]] = 'cpu',
                  output_device: Optional[str] = None,
-                 dataset_state_name: str = 'dataset_state',
-                 model_state_name: str = 'model_state',
+                 state_name_dataset: str = 'dataset_state',
+                 state_name_model: str = 'model_state',
                  force_gradient: Optional[bool] = None,
                  **kwargs):
         super().__init__(**kwargs)
@@ -31,8 +31,8 @@ class Model(SeededModule, ABC):
         self.output_device = output_device
         self.module = torch_model.to(self.device)
         self._parallel_module = self.module if len(self.devices) == 1 else nn.DataParallel(self.module, device_ids=self.devices, output_device=output_device)
-        self.dataset_state_name: str = dataset_state_name
-        self.model_state_name: str = model_state_name
+        self.state_name_dataset: str = state_name_dataset
+        self.state_name_model: str = state_name_model
 
         if module_load_file:
             module_state_dict = torch.load(module_load_file, map_location=self.device)
@@ -42,7 +42,7 @@ class Model(SeededModule, ABC):
         self.state = ModelState()
 
     def step(self, state: State) -> None:
-        dataset_state: DatasetState = getattr(state, self.dataset_state_name)
+        dataset_state: DatasetState = getattr(state, self.state_name_dataset)
         self.state.output = None
 
         module_input = self.format_module_input(dataset_state.data)
@@ -54,7 +54,7 @@ class Model(SeededModule, ABC):
             module_output = self._parallel_module(module_input)
 
         self.state.output = self.format_module_output(module_output)
-        setattr(state, self.model_state_name, self.state)
+        setattr(state, self.state_name_model, self.state)
 
     @staticmethod
     def format_module_input(data: Any) -> Any:
@@ -111,6 +111,6 @@ class ModelConfig(SeededModuleConfig):
     module_load_file: Optional[Path] = None
     device: Union[str, List[str]] = 'cpu'
     output_device: Optional[str] = None
-    dataset_state_name: str = 'dataset_state'
-    model_state_name: str = 'model_state'
+    state_name_dataset: str = 'dataset_state'
+    state_name_model: str = 'model_state'
     force_gradient: Optional[bool] = None

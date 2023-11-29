@@ -19,8 +19,8 @@ class DatasetLoaderState(State):
 class DatasetLoader(SeededModule):
     def __init__(self, datasets: Dict[str, Dataset], max_iterations: Optional[int] = None,
                  max_epochs: Optional[int] = None, next_dataset_tests: Optional[List[StateTest]] = None,
-                 dataset_loader_state_name: str = 'dataset_loader_state',
-                 looper_state_name: str = 'looper_state', **kwargs):
+                 state_name_dataset_loader: str = 'dataset_loader_state',
+                 state_name_looper: str = 'looper_state', **kwargs):
         super().__init__(**kwargs)
         self.datasets = datasets
         self.max_iterations = max_iterations
@@ -34,12 +34,12 @@ class DatasetLoader(SeededModule):
         self._consecutive_stop_iteration_counter = 0
         self._consecutive_same_dataset_stop_iteration_counter = 0
 
-        self.dataset_loader_state_name: str = dataset_loader_state_name
-        self.looper_state_name: Optional[str] = looper_state_name
+        self.state_name_dataset_loader: str = state_name_dataset_loader
+        self.state_name_looper: Optional[str] = state_name_looper
 
     def step(self, state: State) -> None:
         self.state.iteration += 1
-        setattr(state, self.dataset_loader_state_name, self.state)
+        setattr(state, self.state_name_dataset_loader, self.state)
 
         while True:
             if (
@@ -60,9 +60,9 @@ class DatasetLoader(SeededModule):
                     (self.max_epochs and self.state.epoch > self.max_epochs) or
                     self._consecutive_stop_iteration_counter > len(self.datasets)
             ):
-                if (self.looper_state_name is not None and hasattr(state, self.looper_state_name) and
-                        isinstance(getattr(state, self.looper_state_name), LooperState)):
-                    looper_state: LooperState = getattr(state, self.looper_state_name)
+                if (self.state_name_looper is not None and hasattr(state, self.state_name_looper) and
+                        isinstance(getattr(state, self.state_name_looper), LooperState)):
+                    looper_state: LooperState = getattr(state, self.state_name_looper)
                     self.logger.debug(f"Stop looper at iteration {looper_state.total_iteration}")
                     looper_state.stop_loop = True
                     return
@@ -109,8 +109,8 @@ class DatasetLoaderConfig(SeededModuleConfig):
     max_iterations: Optional[int] = None
     max_epochs: Optional[int] = None
     next_dataset_tests: Optional[List[StateTestConfig]] = None
-    dataset_loader_state_name: str = 'dataset_loader_state'
-    looper_state_name: str = 'looper_state'
+    state_name_dataset_loader: str = 'dataset_loader_state'
+    state_name_looper: str = 'looper_state'
 
     def load(self, *args, **kwargs):
         config_data = dict(self)

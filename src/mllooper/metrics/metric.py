@@ -20,9 +20,9 @@ class MetricState(State):
 
 class Metric(Module, ABC):
     def __init__(self, requires_grad: bool = False,
-                 dataset_state_name: Optional[str] = 'dataset_state',
-                 looper_state_name: Optional[str] = 'looper_state',
-                 model_state_name: Optional[str] = 'model_state',
+                 state_name_dataset: Optional[str] = 'dataset_state',
+                 state_name_looper: Optional[str] = 'looper_state',
+                 state_name_model: Optional[str] = 'model_state',
                  **kwargs):
         super().__init__(**kwargs)
         self.state_name = self.name
@@ -32,14 +32,14 @@ class Metric(Module, ABC):
 
         self._last_log_time_per_dataset = {}
 
-        self.dataset_state_name: Optional[str] = dataset_state_name
-        self.looper_state_name: Optional[str] = looper_state_name
-        self.model_state_name: Optional[str] = model_state_name
+        self.state_name_dataset: Optional[str] = state_name_dataset
+        self.state_name_looper: Optional[str] = state_name_looper
+        self.state_name_model: Optional[str] = state_name_model
 
     def log(self, state: State) -> None:
         """Save last log time per dataset name."""
         try:
-            dataset_state: DatasetState = getattr(state, self.dataset_state_name)
+            dataset_state: DatasetState = getattr(state, self.state_name_dataset)
         except AttributeError as e:
             self.logger.warning(e)
             return
@@ -55,7 +55,7 @@ class Metric(Module, ABC):
         self._log(state)
 
     def step(self, state: State) -> None:
-        dataset_state: DatasetState = getattr(state, self.dataset_state_name)
+        dataset_state: DatasetState = getattr(state, self.state_name_dataset)
         self.state.output = None
 
         with torch.set_grad_enabled(dataset_state.train and self.requires_grad):
@@ -97,9 +97,9 @@ class Metric(Module, ABC):
 @loads(None)
 class MetricConfig(ModuleConfig):
     requires_grad: bool = False
-    dataset_state_name: Optional[str] = 'dataset_state'
-    looper_state_name: Optional[str] = 'looper_state'
-    model_state_name: Optional[str] = 'model_state'
+    state_name_dataset: Optional[str] = 'dataset_state'
+    state_name_looper: Optional[str] = 'looper_state'
+    state_name_model: Optional[str] = 'model_state'
 
 
 class ScalarMetric(Metric):
@@ -112,8 +112,8 @@ class ScalarMetric(Metric):
         raise NotImplementedError
 
     def _log(self, state: State) -> None:
-        looper_state: LooperState = getattr(state, self.looper_state_name)
-        dataset_state: DatasetState = getattr(state, self.dataset_state_name)
+        looper_state: LooperState = getattr(state, self.state_name_looper)
+        dataset_state: DatasetState = getattr(state, self.state_name_dataset)
 
         output: torch.Tensor = self.state.output
 
@@ -169,8 +169,8 @@ class AveragedMetric(ScalarMetric):
         self.metric.log(state)
 
     def _log(self, state: State) -> None:
-        looper_state: LooperState = getattr(state, self.looper_state_name)
-        dataset_state: DatasetState = getattr(state, self.dataset_state_name)
+        looper_state: LooperState = getattr(state, self.state_name_looper)
+        dataset_state: DatasetState = getattr(state, self.state_name_dataset)
 
         dataset_average = self.average_per_dataset.get(dataset_state.name, None)
         if dataset_average is not None:
@@ -180,7 +180,7 @@ class AveragedMetric(ScalarMetric):
             ))
 
     def step(self, state: State) -> None:
-        dataset_state: DatasetState = getattr(state, self.dataset_state_name)
+        dataset_state: DatasetState = getattr(state, self.state_name_dataset)
         self.state.output = None
         self.state.average = None
 
@@ -267,8 +267,8 @@ class MeanMetric(ScalarMetric):
         self.metric.log(state)
 
     def _log(self, state: State) -> None:
-        looper_state: LooperState = getattr(state, self.looper_state_name)
-        dataset_state: DatasetState = getattr(state, self.dataset_state_name)
+        looper_state: LooperState = getattr(state, self.state_name_looper)
+        dataset_state: DatasetState = getattr(state, self.state_name_dataset)
 
         dataset_mean = self.mean_per_dataset.get(dataset_state.name, None)
         if dataset_mean is not None:
@@ -278,7 +278,7 @@ class MeanMetric(ScalarMetric):
             ))
 
     def step(self, state: State) -> None:
-        dataset_state: DatasetState = getattr(state, self.dataset_state_name)
+        dataset_state: DatasetState = getattr(state, self.state_name_dataset)
         self.state.output = None
         self.state.mean = None
 
@@ -366,8 +366,8 @@ class RunningMeanMetric(ScalarMetric):
         self.metric.log(state)
 
     def _log(self, state: State) -> None:
-        looper_state: LooperState = getattr(state, self.looper_state_name)
-        dataset_state: DatasetState = getattr(state, self.dataset_state_name)
+        looper_state: LooperState = getattr(state, self.state_name_looper)
+        dataset_state: DatasetState = getattr(state, self.state_name_dataset)
 
         dataset_values: List[torch.Tensor] = list(self.deque_per_dataset[dataset_state.name])
         if dataset_values is not None and len(dataset_values) > 0:
@@ -378,7 +378,7 @@ class RunningMeanMetric(ScalarMetric):
             ))
 
     def step(self, state: State) -> None:
-        dataset_state: DatasetState = getattr(state, self.dataset_state_name)
+        dataset_state: DatasetState = getattr(state, self.state_name_dataset)
         self.state.output = None
         self.state.running_mean = None
 
@@ -502,13 +502,13 @@ class MetricListConfig(ModuleConfig):
 
 class Loss(ScalarMetric):
     def __init__(self, metrics: List[ScalarMetric], weights: Optional[List[float]] = None,
-                 requires_grad: bool = True, loss_state_name: str = 'loss_state', **kwargs):
+                 requires_grad: bool = True, state_name_loss: str = 'loss_state', **kwargs):
         if not requires_grad:
             self.logger.warning(f"requires_grad of {self.name} is always set to True.")
         name = kwargs.pop('name')
         name = f"Loss({', '.join(map(operator.attrgetter('name'), metrics))})" if name is None else name
         super().__init__(name=name, requires_grad=True, **kwargs)
-        self.state_name = loss_state_name
+        self.state_name = state_name_loss
 
         self.metrics = metrics
         self.weights = weights
@@ -581,7 +581,7 @@ class LossConfig(MetricConfig):
     requires_grad: bool = True
     metrics: List[ScalarMetricConfig]
     weights: Optional[List[float]] = None
-    loss_state_name: str = 'loss_state'
+    state_name_loss: str = 'loss_state'
 
     def load(self, *args, **kwargs):
         config_data = dict(self)
