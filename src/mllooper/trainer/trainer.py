@@ -33,7 +33,7 @@ class Trainer(Module):
 
         self.state_name_dataset: str = state_name_dataset
         self.state_name_loss: str = state_name_loss
-        self.module_name_models: List[str] = module_name_model if module_name_model is isinstance(module_name_model, list) else [module_name_model]
+        self.module_name_models: List[str] = module_name_model if isinstance(module_name_model, list) else [module_name_model]
 
     def initialise(self, modules: Dict[str, Module]) -> None:
         trainable_parameters = []
