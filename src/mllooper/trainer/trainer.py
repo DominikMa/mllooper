@@ -1,4 +1,5 @@
-from typing import Dict, Optional, Literal
+import itertools
+from typing import Dict, Optional, Literal, List
 
 import torch
 from torch.optim import Optimizer
@@ -16,7 +17,7 @@ class Trainer(Module):
                  enable_grad_scaler: bool = False,
                  state_name_dataset: str = 'dataset_state',
                  state_name_loss: str = 'loss_state',
-                 module_name_model: str = 'model',
+                 module_name_model: str | List[str] = 'model',
                  **kwargs):
         super().__init__(**kwargs)
         self._optimizer_config = optimizer
@@ -32,16 +33,28 @@ class Trainer(Module):
 
         self.state_name_dataset: str = state_name_dataset
         self.state_name_loss: str = state_name_loss
-        self.module_name_model = module_name_model
+        self.module_name_models: List[str] = module_name_model if module_name_model is isinstance(module_name_model, list) else [module_name_model]
 
     def initialise(self, modules: Dict[str, Module]) -> None:
-        try:
-            model = modules[self.module_name_model]
-            assert isinstance(model, Model)
-            self._optimizer_config.params = model.trainable_parameters(self._optimizer_config.params)
-        except KeyError:
-            raise KeyError(f"{self.name} needs a model to be in the initialization dictionary "
-                           f"in order to get the models trainable parameters.")
+        trainable_parameters = []
+        for module_name_model in self.module_name_models:
+            try:
+                model = modules[module_name_model]
+                assert isinstance(model, Model)
+                model_trainable_parameters = model.trainable_parameters(self._optimizer_config.params)
+                trainable_parameters.append(model_trainable_parameters)
+            except KeyError:
+                raise KeyError(f"{self.name} needs a model with the name {module_name_model} "
+                               f"to be in the initialization dictionary "
+                               f"in order to get the models trainable parameters.")
+
+        joined_trainable_parameters = trainable_parameters[0]
+        for model_trainable_parameters in trainable_parameters[1:]:
+            for idx, param_dict in enumerate(model_trainable_parameters):
+                joined_trainable_parameters[idx]["params"] = itertools.chain(joined_trainable_parameters[idx]["params"],
+                                                                             param_dict["params"])
+
+        self._optimizer_config.params = joined_trainable_parameters
         self.optimizer = self._optimizer_config.load()
 
     def step(self, state: State) -> None:
@@ -70,7 +83,7 @@ class TrainerConfig(ModuleConfig):
     enable_grad_scaler: bool = False
     state_name_dataset: str = 'dataset_state'
     state_name_loss: str = 'loss_state'
-    module_name_model: str = 'model'
+    module_name_model: str | List[str] = 'model'
 
 
 class PrecisionAutoCast(Module):
