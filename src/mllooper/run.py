@@ -8,7 +8,7 @@ from importlib.metadata import distributions
 from importlib.util import spec_from_file_location, module_from_spec, find_spec
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Tuple
+from typing import Tuple, Dict
 
 import click
 import git
@@ -100,14 +100,14 @@ def import_module(module_name: str):
     raise ModuleNotFoundError(f"Could not import {module_name}")
 
 
-def git_import_module(module_git_url: str):
+def git_clone_module(module_git_url: str):
     url, rev, user_pass = git_get_url_rev_and_auth(f'git+{module_git_url}')
     name = url.split('/')[-1].split('.')[0]
 
     try:
-        rev, path = rev.split(':', 1)
+        rev, alias_name = rev.split(':', 1)
     except ValueError:
-        path = ''
+        alias_name = name
     rev = None if rev == '' else rev
 
     clone_path = TemporaryDirectory(prefix=f"{name}_", dir=TEMP_DIR.name)
@@ -130,18 +130,23 @@ def git_import_module(module_git_url: str):
         ref = repo.head.ref.name
         commit = repo.head.commit.hexsha
 
-    import_path = Path(clone_path.name).joinpath(path)
+    logger.info(
+        f"Cloned {name} from {url} at revision {ref} ({commit}){'' if alias_name == name else ' as ' + alias_name}"
+    )
 
-    # try to import as file or directory
-    try:
-        import_from_disk(str(import_path))
-        logger.info(
-            f"Imported module {name}{'' if not path else ' at ' + path} from {url} at revision {ref} ({commit})"
-        )
-    except ModuleNotFoundError as error:
-        raise ModuleNotFoundError(f"Could not import {module_git_url}: {error}") from error
+    #
+    # import_path = Path(clone_path.name).joinpath(alias_name)
+    #
+    # # try to import as file or directory
+    # try:
+    #     import_from_disk(str(import_path))
+    #     logger.info(
+    #         f"Imported module {name}{'' if not alias_name else ' at ' + alias_name} from {url} at revision {ref} ({commit})"
+    #     )
+    # except ModuleNotFoundError as error:
+    #     raise ModuleNotFoundError(f"Could not import {module_git_url}: {error}") from error
 
-    return clone_path
+    return clone_path, alias_name
 
 
 def load_config(config_loader: ConfigLoader, run_config: str, final: bool = True):
@@ -158,13 +163,32 @@ def load_config(config_loader: ConfigLoader, run_config: str, final: bool = True
     return constructed_run
 
 
+def replace_alias_name(name: str, cloned_gits: Dict[str, TemporaryDirectory]) -> str:
+    if not name.startswith('@'):
+        return name
+    name = name.removeprefix('@')
+
+    try:
+        alias_name, name = name.split(':', maxsplit=1)
+    except ValueError:
+        raise BadParameter(f"If an alias is used the alias name and the following suffix has to be split by a colon.")
+
+    name = name.removeprefix('/')
+    try:
+        path_prefix = Path(cloned_gits[alias_name].name)
+    except KeyError:
+        raise BadParameter(f"There is no cloned git for the alias name {alias_name}")
+    name = path_prefix.joinpath(name)
+    return str(name)
+
+
 @click.group()
 @click.option("-c", "--config", "config_paths", multiple=True, default=[], type=Path)
 @click.option("-d", "--dir", "config_dirs", multiple=True, default=[], type=Path)
 @click.option("-y", "--yaml", "yaml_strings", multiple=True, default=[], type=str)
 @click.option("--install", "install_packages", multiple=True, default=[])
 @click.option("-i", "--import", "import_modules", multiple=True, default=[])
-@click.option("-g", "--git-import", "git_import_modules", multiple=True, default=[])
+@click.option("-g", "--git-clone", "git_clones", multiple=True, default=[])
 @click.option("-v", "--verbose", count=True, default=0)
 @click.option("--quiet", count=True, default=0)
 @click.option("--global-log-level", type=int, default=30)
@@ -176,7 +200,7 @@ def cli(
         yaml_strings: Tuple[str],
         install_packages: Tuple[str],
         import_modules: Tuple[str],
-        git_import_modules: Tuple[str],
+        git_clones: Tuple[str],
         verbose: int,
         quiet: int,
         global_log_level: int
@@ -190,6 +214,20 @@ def cli(
     buffering_log_handler = BufferingLogHandler()
     logging.getLogger().addHandler(buffering_log_handler)
 
+    # import modules before creating the loader
+    # keep a reference of all temp dirs to prevent them being unlinked
+    cloned_gits: Dict[str, TemporaryDirectory] = {}
+    for module_git_url in git_clones:
+        try:
+            temp_dir, alias_name = git_clone_module(module_git_url)
+            cloned_gits[alias_name] = temp_dir
+        except ModuleNotFoundError as e:
+            raise BadParameter(f"{e}") from e
+
+    import_modules = [replace_alias_name(name, cloned_gits) for name in import_modules]
+    config_paths = [Path(replace_alias_name(str(name), cloned_gits)) for name in config_paths]
+    config_dirs = [Path(replace_alias_name(str(name), cloned_gits)) for name in config_dirs]
+
     # install packages before importing modules
     for package in install_packages:
         try:
@@ -201,16 +239,6 @@ def cli(
     for module_name in import_modules:
         try:
             import_module(module_name)
-        except ModuleNotFoundError as e:
-            raise BadParameter(f"{e}") from e
-
-    # import modules before creating the loader
-    # keep a reference of all temp dirs to prevent them being unlinked
-    temp_dirs = []
-    for module_git_url in git_import_modules:
-        try:
-            temp_dir = git_import_module(module_git_url)
-            temp_dirs.append(temp_dir)
         except ModuleNotFoundError as e:
             raise BadParameter(f"{e}") from e
 
@@ -240,7 +268,7 @@ def cli(
 
     ctx.obj['config_loader'] = config_loader
     ctx.obj['buffering_log_handler'] = buffering_log_handler
-    ctx.obj['temp_dirs'] = temp_dirs
+    ctx.obj['cloned_gits'] = cloned_gits
 
 
 @cli.command()
@@ -249,6 +277,8 @@ def cli(
 def run(ctx_object, run_config: str):
     config_loader = ctx_object['config_loader']
     buffering_log_handler = ctx_object['buffering_log_handler']
+
+    run_config = replace_alias_name(run_config, ctx_object['cloned_gits'])
 
     previous_handlers = logging.getLogger().handlers.copy()
 
