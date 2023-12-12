@@ -48,13 +48,14 @@ class Trainer(Module):
                                f"to be in the initialization dictionary "
                                f"in order to get the models trainable parameters.")
 
+        # TODO clean up
         joined_trainable_parameters = trainable_parameters[0]
         for model_trainable_parameters in trainable_parameters[1:]:
             for idx, param_dict in enumerate(model_trainable_parameters):
-                if "params" not in joined_trainable_parameters[idx]:
+                if "params" not in param_dict:
                     continue
-                joined_trainable_parameters[idx]["params"] = itertools.chain(joined_trainable_parameters[idx]["params"],
-                                                                             param_dict["params"])
+                parameters = joined_trainable_parameters[idx]["params"] if "params" in joined_trainable_parameters[idx] else []
+                joined_trainable_parameters[idx]["params"] = itertools.chain(parameters, param_dict["params"])
 
         self._optimizer_config.params = joined_trainable_parameters
         self.optimizer = self._optimizer_config.load()
