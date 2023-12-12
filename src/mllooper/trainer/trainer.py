@@ -51,6 +51,8 @@ class Trainer(Module):
         joined_trainable_parameters = trainable_parameters[0]
         for model_trainable_parameters in trainable_parameters[1:]:
             for idx, param_dict in enumerate(model_trainable_parameters):
+                if "params" not in joined_trainable_parameters[idx]:
+                    continue
                 joined_trainable_parameters[idx]["params"] = itertools.chain(joined_trainable_parameters[idx]["params"],
                                                                              param_dict["params"])
 
