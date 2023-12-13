@@ -9,17 +9,18 @@ from mllooper.models import Model
 
 class ModelLogger(Module):
     def __init__(self, add_step: bool = False, log_at_teardown: bool = False, log_at_looper_stop: bool = False,
-                 state_name_looper: str = 'looper_state', **kwargs):
+                 state_name_looper: str = 'looper_state', module_name_model: str = 'model', **kwargs):
         super().__init__(**kwargs)
         self.add_step = add_step
         self.log_at_teardown = log_at_teardown
         self.log_at_looper_stop = log_at_looper_stop
         self.model: Optional[Model] = None
         self.state_name_looper: str = state_name_looper
+        self.module_name_model: str = module_name_model
 
     def initialise(self, modules: Dict[str, 'Module']) -> None:
         try:
-            model = modules['model']
+            model = modules.get(self.module_name_model)
             assert isinstance(model, Model)
             self.model = model
         except KeyError:
@@ -60,3 +61,4 @@ class ModelLoggerConfig(ModuleConfig):
     log_at_teardown: bool = False
     log_at_looper_stop: bool = False
     state_name_looper: str = 'looper_state'
+    module_name_model: str = 'model'
