@@ -1,5 +1,5 @@
 from abc import ABC
-from typing import Optional, List, Tuple
+from typing import Optional, List, Tuple, Dict
 
 from torch.optim import SGD, Adam
 from yaloader import YAMLBaseConfig, loads
@@ -7,7 +7,7 @@ from yaloader import YAMLBaseConfig, loads
 
 @loads(None)
 class OptimizerConfig(YAMLBaseConfig, ABC):
-    params: Optional[List] = None
+    params: Optional[List[Dict]] = None
 
 
 @loads(SGD)
