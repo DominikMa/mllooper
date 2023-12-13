@@ -61,3 +61,4 @@ class ModelLoggerConfig(ModuleConfig):
     log_at_teardown: bool = False
     log_at_looper_stop: bool = False
     state_name_looper: str = 'looper_state'
+    module_name_model: str = 'model'
