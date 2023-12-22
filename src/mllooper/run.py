@@ -335,6 +335,7 @@ def build(ctx_object, defaults: bool, unset: bool, final: bool, config: str):
     buffering_log_handler: BufferingLogHandler = ctx_object['buffering_log_handler']
     buffering_log_handler.close()
 
+    config = replace_alias_name(config, ctx_object['cloned_gits'])
     config = load_config(config_loader, config, final=final)
 
     YAMLConfigDumper.exclude_unset = not unset
