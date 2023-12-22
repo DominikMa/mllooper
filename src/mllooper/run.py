@@ -61,10 +61,18 @@ def import_from_disk(module_name: str):
     else:
         raise ModuleNotFoundError
 
-    if find_spec(name) is not None:
+    if sys.modules.get(name, None) is not None:
         raise RuntimeError(f'Can not import {module_name} as {name} because a module with the name {name} is already loaded.')
 
-    spec = spec_from_file_location(name, location)
+    spec = find_spec(name)
+    if spec is None:
+        spec = spec_from_file_location(name, location)
+
+    if spec is None:
+        raise RuntimeError(f'Can not import {module_name} as {name} from {location}.')
+    elif spec.origin != str(location):
+        raise RuntimeError(f'Can not import {module_name} as {name} from {location} because there is a spec with the same name at {spec.origin}.')
+
     module = module_from_spec(spec)
     sys.modules[name] = module
     spec.loader.exec_module(module)
