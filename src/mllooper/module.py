@@ -287,7 +287,7 @@ class ModuleList(Module):
 
     def load_state_dict(self, state_dict: Dict[str, Any], strict: bool = True):
         name = full_name(self)
-        if name not in state_dict.keys():
+        if name not in state_dict:
             raise ValueError(f"Expected the state dict to have a key '{name}' but it has not.")
         own_state_dict: Dict[str, Any] = state_dict.pop(name)
 
@@ -306,5 +306,5 @@ class ModuleListConfig(ModuleConfig):
 
     def load(self, *args, **kwargs):
         config_data = dict(self)
-        config_data['modules'] = list(map(lambda module_config: module_config.load(), config_data['modules']))
+        config_data['modules'] = [module_config.load() for module_config in config_data['modules']]
         return self._loaded_class(**config_data)

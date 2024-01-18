@@ -149,12 +149,13 @@ class AveragedMetricState(MetricState):
 
 
 class AveragedMetric(ScalarMetric):
-    def __init__(self, metric: ScalarMetric, avg_decay: float = 0.995, **kwargs):
+    def __init__(self, metric: ScalarMetric, avg_decay: float = 0.995, ignore_nan: bool = True, **kwargs):
         name = kwargs.pop('name')
         name = "Averaged" if name is None else name
         super().__init__(name=f"{name} {metric.name}", **kwargs)
         self.metric = metric
         self.avg_decay = avg_decay
+        self.ignore_nan = ignore_nan
         self.state = AveragedMetricState()
         self.average_per_dataset = {}
 
@@ -193,10 +194,11 @@ class AveragedMetric(ScalarMetric):
 
         with torch.set_grad_enabled(False):
             dataset_average = self.average_per_dataset.get(dataset_state.name, None)
-            if dataset_average is None:
-                dataset_average = metric_output.detach()
-            else:
-                dataset_average = self.avg_decay * dataset_average + (1.0 - self.avg_decay) * metric_output.detach()
+            if not torch.any(torch.isnan(metric_output)) or not self.ignore_nan:
+                if dataset_average is None:
+                    dataset_average = metric_output.detach()
+                else:
+                    dataset_average = self.avg_decay * dataset_average + (1.0 - self.avg_decay) * metric_output.detach()
             self.average_per_dataset[dataset_state.name] = dataset_average
             self.state.average = self.average_per_dataset[dataset_state.name]
         setattr(state, self.name, self.state)
@@ -233,6 +235,7 @@ class AveragedMetric(ScalarMetric):
 class AveragedMetricConfig(ScalarMetricConfig):
     metric: ScalarMetricConfig
     avg_decay: float = 0.995
+    ignore_nan: bool = True
 
     def load(self, *args, **kwargs):
         config_data = dict(self)
@@ -247,11 +250,12 @@ class MeanMetricState(MetricState):
 
 
 class MeanMetric(ScalarMetric):
-    def __init__(self, metric: ScalarMetric, **kwargs):
+    def __init__(self, metric: ScalarMetric, ignore_nan: bool = True, **kwargs):
         name = kwargs.pop('name')
         name = "Mean" if name is None else name
         super().__init__(name=f"{name} {metric.name}", **kwargs)
         self.metric = metric
+        self.ignore_nan = ignore_nan
         self.state = MeanMetricState()
         self.mean_per_dataset = {}
         self.samples_per_dataset = {}
@@ -292,12 +296,13 @@ class MeanMetric(ScalarMetric):
             dataset_mean = self.mean_per_dataset.get(dataset_state.name, None)
             dataset_sample_count = self.samples_per_dataset.get(dataset_state.name, 0)
 
-            if dataset_mean is None:
-                dataset_mean = metric_output.detach()
-                dataset_sample_count = 1
-            else:
-                dataset_mean = (dataset_mean * dataset_sample_count + metric_output.detach()) / (dataset_sample_count+1)
-                dataset_sample_count += 1
+            if not torch.any(torch.isnan(metric_output)) or not self.ignore_nan:
+                if dataset_mean is None:
+                    dataset_mean = metric_output.detach()
+                    dataset_sample_count = 1
+                else:
+                    dataset_mean = (dataset_mean * dataset_sample_count + metric_output.detach()) / (dataset_sample_count+1)
+                    dataset_sample_count += 1
 
             self.mean_per_dataset[dataset_state.name] = dataset_mean
             self.samples_per_dataset[dataset_state.name] = dataset_sample_count
@@ -333,6 +338,7 @@ class MeanMetric(ScalarMetric):
 @loads(MeanMetric)
 class MeanMetricConfig(ScalarMetricConfig):
     metric: ScalarMetricConfig
+    ignore_nan: bool = True
 
     def load(self, *args, **kwargs):
         config_data = dict(self)
@@ -346,12 +352,13 @@ class RunningMeanMetricState(MetricState):
 
 
 class RunningMeanMetric(ScalarMetric):
-    def __init__(self, max_len: int, metric: ScalarMetric, **kwargs):
+    def __init__(self, max_len: int, metric: ScalarMetric, ignore_nan: bool = False, **kwargs):
         name = kwargs.pop('name')
         name = "Running Mean" if name is None else name
         super().__init__(name=f"{name} {metric.name}", **kwargs)
         self.max_len = max_len
         self.metric = metric
+        self.ignore_nan = ignore_nan
         self.state = RunningMeanMetricState()
         self.deque_per_dataset = defaultdict(lambda: deque(maxlen=self.max_len))
 
@@ -371,7 +378,10 @@ class RunningMeanMetric(ScalarMetric):
 
         dataset_values: List[torch.Tensor] = list(self.deque_per_dataset[dataset_state.name])
         if dataset_values is not None and len(dataset_values) > 0:
-            mean = torch.mean(torch.stack(dataset_values).squeeze())
+            if self.ignore_nan:
+                mean = torch.nanmean(torch.stack(dataset_values).squeeze())
+            else:
+                mean = torch.mean(torch.stack(dataset_values).squeeze())
             self.logger.debug(ScalarLogMessage(
                 tag=f"{dataset_state.name}/{self.name}", step=looper_state.total_iteration,
                 scalar=float(mean.detach().cpu().item())
@@ -424,6 +434,7 @@ class RunningMeanMetric(ScalarMetric):
 class RunningMeanMetricConfig(ScalarMetricConfig):
     max_len: int
     metric: ScalarMetricConfig
+    ignore_nan: bool = False
 
     def load(self, *args, **kwargs):
         config_data = dict(self)
