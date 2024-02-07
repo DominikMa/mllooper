@@ -111,11 +111,12 @@ def import_module(module_name: str):
 def git_clone_module(module_git_url: str):
     url, rev, user_pass = git_get_url_rev_and_auth(f'git+{module_git_url}')
     name = url.split('/')[-1].split('.')[0]
+    alias_name = name
 
-    try:
+    if rev and ':' in rev:
         rev, alias_name = rev.split(':', 1)
-    except ValueError:
-        alias_name = name
+
+    alias_name = name if alias_name == '' else alias_name
     rev = None if rev == '' else rev
 
     clone_path = TemporaryDirectory(prefix=f"{name}_", dir=TEMP_DIR.name)
