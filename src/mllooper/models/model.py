@@ -114,3 +114,14 @@ class ModelConfig(SeededModuleConfig):
     state_name_dataset: str = 'dataset_state'
     state_name_model: str = 'model_state'
     force_gradient: Optional[bool] = None
+
+
+class IdentityModel(Model):
+    def __init__(self, **kwargs):
+        torch_model = nn.Identity()
+        super().__init__(torch_model, **kwargs)
+
+
+@loads(IdentityModel)
+class IdentityModelConfig(ModelConfig):
+    pass
