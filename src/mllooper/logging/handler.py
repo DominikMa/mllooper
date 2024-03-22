@@ -146,6 +146,8 @@ class FileLogBase(LogHandler):
         if not self.log_dir.exists():
             raise RuntimeError
 
+        self.logger.info(f"Log dir: {self.log_dir}")
+
 
 @loads(None)
 class FileLogBaseConfig(LogHandlerConfig, extra=Extra.allow):
