@@ -17,20 +17,31 @@ class ModelState(State):
 
 
 class Model(SeededModule, ABC):
-    def __init__(self, torch_model: nn.Module, module_load_file: Optional[Path] = None,
-                 device: Union[str, List[str]] = 'cpu',
-                 output_device: Optional[str] = None,
-                 state_name_dataset: str = 'dataset_state',
-                 state_name_model: str = 'model_state',
-                 force_gradient: Optional[bool] = None,
-                 **kwargs):
+    def __init__(
+        self,
+        torch_model: nn.Module,
+        module_load_file: Optional[Path] = None,
+        device: Union[str, List[str]] = "cpu",
+        output_device: Optional[str] = None,
+        state_name_dataset: str = "dataset_state",
+        state_name_model: str = "model_state",
+        force_gradient: Optional[bool] = None,
+        **kwargs
+    ):
         super().__init__(**kwargs)
         devices = device if isinstance(device, list) else [device]
         self.devices = [torch.device(device) for device in devices]
         self.device = self.devices[0]
+        # TODO fix output device, not used if single device given
         self.output_device = output_device
         self.module = torch_model.to(self.device)
-        self._parallel_module = self.module if len(self.devices) == 1 else nn.DataParallel(self.module, device_ids=self.devices, output_device=output_device)
+        self._parallel_module = (
+            self.module
+            if len(self.devices) == 1
+            else nn.DataParallel(
+                self.module, device_ids=self.devices, output_device=output_device
+            )
+        )
         self.state_name_dataset: str = state_name_dataset
         self.state_name_model: str = state_name_model
 
@@ -49,7 +60,11 @@ class Model(SeededModule, ABC):
 
         self.module.train() if dataset_state.train else self.module.eval()
         self._parallel_module.train() if dataset_state.train else self._parallel_module.eval()
-        with torch.set_grad_enabled(self.force_gradient if self.force_gradient is not None else dataset_state.train):
+        with torch.set_grad_enabled(
+            self.force_gradient
+            if self.force_gradient is not None
+            else dataset_state.train
+        ):
             # module_output = self.module(module_input)
             module_output = self._parallel_module(module_input)
 
@@ -60,8 +75,12 @@ class Model(SeededModule, ABC):
     def format_module_input(data: Any) -> Any:
         if isinstance(data, torch.Tensor):
             return data
-        elif isinstance(data, Dict) and 'input' in data.keys() and isinstance(data['input'], torch.Tensor):
-            return data['input']
+        elif (
+            isinstance(data, Dict)
+            and "input" in data.keys()
+            and isinstance(data["input"], torch.Tensor)
+        ):
+            return data["input"]
         else:
             raise NotImplementedError
 
@@ -74,7 +93,7 @@ class Model(SeededModule, ABC):
 
     def trainable_parameters(self, param_groups: Optional[List[Dict]]) -> List[Dict]:
         if param_groups is None:
-            return [{'params': self.module.parameters()}]
+            return [{"params": self.module.parameters()}]
         # Make a copy so that the parameters do not end up in the pydantic model
         param_groups = [d.copy() for d in param_groups]
         if len(param_groups) == 1:
@@ -89,14 +108,14 @@ class Model(SeededModule, ABC):
         state_dict.update(
             device=str(self.device),
             module_state_dict=self.module.state_dict().copy(),
-            state=self.state
+            state=self.state,
         )
         return state_dict
 
     def load_state_dict(self, state_dict: Dict[str, Any], strict: bool = True) -> None:
-        device = state_dict.pop('device')
-        module_state_dict = state_dict.pop('module_state_dict')
-        state = state_dict.pop('state')
+        device = state_dict.pop("device")
+        module_state_dict = state_dict.pop("module_state_dict")
+        state = state_dict.pop("state")
 
         super(Model, self).load_state_dict(state_dict)
 
@@ -109,10 +128,10 @@ class Model(SeededModule, ABC):
 @loads(None)
 class ModelConfig(SeededModuleConfig):
     module_load_file: Optional[Path] = None
-    device: Union[str, List[str]] = 'cpu'
+    device: Union[str, List[str]] = "cpu"
     output_device: Optional[str] = None
-    state_name_dataset: str = 'dataset_state'
-    state_name_model: str = 'model_state'
+    state_name_dataset: str = "dataset_state"
+    state_name_model: str = "model_state"
     force_gradient: Optional[bool] = None
 
 

@@ -13,27 +13,39 @@ from mllooper.trainer.optimizer import OptimizerConfig
 
 
 class Trainer(Module):
-    def __init__(self, optimizer: OptimizerConfig, enable_cudnn_auto_tuner: bool = True,
-                 enable_grad_scaler: bool = False,
-                 state_name_dataset: str = 'dataset_state',
-                 state_name_loss: str = 'loss_state',
-                 module_name_model: str | List[str] = 'model',
-                 **kwargs):
+    def __init__(
+        self,
+        optimizer: OptimizerConfig,
+        zero_grad_at_end_of_step: bool = False,
+        enable_cudnn_auto_tuner: bool = True,
+        enable_grad_scaler: bool = False,
+        state_name_dataset: str = "dataset_state",
+        state_name_loss: str = "loss_state",
+        module_name_model: str | List[str] = "model",
+        **kwargs,
+    ):
         super().__init__(**kwargs)
         self._optimizer_config = optimizer
         self.optimizer: Optional[Optimizer] = None
 
+        self.zero_grad_at_end_of_step = zero_grad_at_end_of_step
         self.enable_cudnn_auto_tuner = enable_cudnn_auto_tuner
         self.enable_grad_scaler = enable_grad_scaler
 
         if self.enable_cudnn_auto_tuner:
             torch.backends.cudnn.benchmark = True
 
-        self.grad_scaler = torch.cuda.amp.GradScaler() if self.enable_grad_scaler else None
+        self.grad_scaler = (
+            torch.cuda.amp.GradScaler() if self.enable_grad_scaler else None
+        )
 
         self.state_name_dataset: str = state_name_dataset
         self.state_name_loss: str = state_name_loss
-        self.module_name_models: List[str] = module_name_model if isinstance(module_name_model, list) else [module_name_model]
+        self.module_name_models: List[str] = (
+            module_name_model
+            if isinstance(module_name_model, list)
+            else [module_name_model]
+        )
 
     def initialise(self, modules: Dict[str, Module]) -> None:
         trainable_parameters = []
@@ -41,12 +53,16 @@ class Trainer(Module):
             try:
                 model = modules[module_name_model]
                 assert isinstance(model, Model)
-                model_trainable_parameters = model.trainable_parameters(self._optimizer_config.params)
+                model_trainable_parameters = model.trainable_parameters(
+                    self._optimizer_config.params
+                )
                 trainable_parameters.append(model_trainable_parameters)
             except KeyError:
-                raise KeyError(f"{self.name} needs a model with the name {module_name_model} "
-                               f"to be in the initialization dictionary "
-                               f"in order to get the models trainable parameters.")
+                raise KeyError(
+                    f"{self.name} needs a model with the name {module_name_model} "
+                    f"to be in the initialization dictionary "
+                    f"in order to get the models trainable parameters."
+                )
 
         # TODO clean up
         joined_trainable_parameters = trainable_parameters[0]
@@ -54,8 +70,14 @@ class Trainer(Module):
             for idx, param_dict in enumerate(model_trainable_parameters):
                 if "params" not in param_dict:
                     continue
-                parameters = joined_trainable_parameters[idx]["params"] if "params" in joined_trainable_parameters[idx] else []
-                joined_trainable_parameters[idx]["params"] = itertools.chain(parameters, param_dict["params"])
+                parameters = (
+                    joined_trainable_parameters[idx]["params"]
+                    if "params" in joined_trainable_parameters[idx]
+                    else []
+                )
+                joined_trainable_parameters[idx]["params"] = itertools.chain(
+                    parameters, param_dict["params"]
+                )
 
         self._optimizer_config.params = joined_trainable_parameters
         self.optimizer = self._optimizer_config.load()
@@ -75,18 +97,23 @@ class Trainer(Module):
                 loss.backward()
                 self.optimizer.step()
 
+            if self.zero_grad_at_end_of_step:
+                self.optimizer.zero_grad(set_to_none=True)
+
     def step_callback(self, state: State) -> None:
-        self.optimizer.zero_grad(set_to_none=True)
+        if not self.zero_grad_at_end_of_step:
+            self.optimizer.zero_grad(set_to_none=True)
 
 
 @loads(Trainer)
 class TrainerConfig(ModuleConfig):
     optimizer: OptimizerConfig
+    zero_grad_at_end_of_step: bool = False
     enable_cudnn_auto_tuner: bool = True
     enable_grad_scaler: bool = False
-    state_name_dataset: str = 'dataset_state'
-    state_name_loss: str = 'loss_state'
-    module_name_model: str | List[str] = 'model'
+    state_name_dataset: str = "dataset_state"
+    state_name_loss: str = "loss_state"
+    module_name_model: str | List[str] = "model"
 
 
 class PrecisionAutoCast(Module):
@@ -121,4 +148,4 @@ class PrecisionAutoCast(Module):
 
 @loads(PrecisionAutoCast)
 class PrecisionAutoCastConfig(ModuleConfig):
-    device_type: Literal['cuda', 'cpu', 'xpu']
+    device_type: Literal["cuda", "cpu", "xpu"]
