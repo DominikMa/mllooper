@@ -170,6 +170,8 @@ class ModelConfig(SeededModuleConfig):
     state_name_dataset: str = "dataset_state"
     state_name_model: str = "model_state"
     force_gradient: Optional[bool] = None
+    compile_model: bool = False
+    data_parallel: Optional[Literal["DP", "DDP"]] = None
 
 
 class IdentityModel(Model):
