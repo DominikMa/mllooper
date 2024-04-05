@@ -220,4 +220,4 @@ class DDPSetupConfig(ModuleConfig):
     rank: int
     world_size: int
     master_address: Optional[str] = "localhost"
-    master_port: Optional[str] = None
+    master_port: Optional[str | int] = None
