@@ -205,7 +205,7 @@ class DDPSetup(Module):
         if master_address is not None:
             os.environ["MASTER_ADDR"] = master_address
         if master_port is not None:
-            os.environ["MASTER_PORT"] = master_port
+            os.environ["MASTER_PORT"] = str(master_port)
 
         distributed.init_process_group(backend, rank=rank, world_size=world_size)
 
