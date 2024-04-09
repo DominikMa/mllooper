@@ -50,7 +50,7 @@ class Model(SeededModule, ABC):
                 raise RuntimeError(
                     f"To use multiple devices for the model data_parallel needs to be set to DP or DDP."
                 )
-        if data_parallel == "DP":
+        elif data_parallel == "DP":
             self._parallel_module = nn.DataParallel(
                 self.module, device_ids=self.devices, output_device=output_device
             )
@@ -58,6 +58,8 @@ class Model(SeededModule, ABC):
             self._parallel_module = nn.parallel.DistributedDataParallel(
                 self.module, device_ids=self.devices, output_device=output_device
             )
+        else:
+            raise RuntimeError(f"Unsupported data parallel mode: {data_parallel}")
 
         self._compiled_module: Optional[nn.Module] = None
         if self.compile_model:
