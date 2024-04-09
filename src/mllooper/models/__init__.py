@@ -4,6 +4,8 @@ from mllooper.models.model import (
     ModelConfig,
     IdentityModel,
     IdentityModelConfig,
+    DDPSetup,
+    DDPSetupConfig,
 )
 
 from mllooper.models.resnet import ResNet
