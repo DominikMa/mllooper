@@ -195,6 +195,7 @@ class DDPSetup(Module):
         backend: Optional[str] = None,
         master_address: Optional[str] = None,
         master_port: Optional[str] = None,
+        set_device: bool = True,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -203,6 +204,9 @@ class DDPSetup(Module):
         self.backend = backend
         self.master_address = master_address
         self.master_port = master_port
+
+        if set_device:
+            torch.cuda.set_device(rank)
 
         if master_address is not None:
             os.environ["MASTER_ADDR"] = master_address
@@ -223,3 +227,4 @@ class DDPSetupConfig(ModuleConfig):
     world_size: int
     master_address: Optional[str] = "localhost"
     master_port: Optional[str | int] = None
+    set_device: bool = True
