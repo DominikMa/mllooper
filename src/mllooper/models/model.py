@@ -30,6 +30,7 @@ class Model(SeededModule, ABC):
         force_gradient: Optional[bool] = None,
         compile_model: bool = False,
         data_parallel: Optional[Literal["DP", "DDP"]] = None,
+        ddp_find_unused_parameters: bool = False,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -56,7 +57,10 @@ class Model(SeededModule, ABC):
             )
         elif data_parallel == "DDP":
             self._parallel_module = nn.parallel.DistributedDataParallel(
-                self.module, device_ids=self.devices, output_device=output_device
+                self.module,
+                device_ids=self.devices,
+                output_device=output_device,
+                find_unused_parameters=ddp_find_unused_parameters,
             )
         else:
             raise RuntimeError(f"Unsupported data parallel mode: {data_parallel}")
@@ -174,6 +178,7 @@ class ModelConfig(SeededModuleConfig):
     force_gradient: Optional[bool] = None
     compile_model: bool = False
     data_parallel: Optional[Literal["DP", "DDP"]] = None
+    ddp_find_unused_parameters: bool = False
 
 
 class IdentityModel(Model):
