@@ -128,7 +128,10 @@ def git_clone_module(module_git_url: str):
             depth=1
         )
         bare_repo.git.checkout(rev)
-        ref = bare_repo.head.ref.name
+        try:
+            ref = bare_repo.head.ref.name
+        except TypeError:
+            ref = rev
         commit = bare_repo.head.commit.hexsha
     else:
         repo = git.Repo.clone_from(
