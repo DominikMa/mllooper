@@ -19,11 +19,14 @@ class MetricState(State):
 
 
 class Metric(Module, ABC):
-    def __init__(self, requires_grad: bool = False,
-                 state_name_dataset: Optional[str] = 'dataset_state',
-                 state_name_looper: Optional[str] = 'looper_state',
-                 state_name_model: Optional[str] = 'model_state',
-                 **kwargs):
+    def __init__(
+        self,
+        requires_grad: bool = False,
+        state_name_dataset: Optional[str] = "dataset_state",
+        state_name_looper: Optional[str] = "looper_state",
+        state_name_model: Optional[str] = "model_state",
+        **kwargs,
+    ):
         super().__init__(**kwargs)
         self.state_name = self.name
         self.requires_grad = requires_grad
@@ -70,15 +73,12 @@ class Metric(Module, ABC):
 
     def state_dict(self) -> Dict[str, Any]:
         state_dict = super(Metric, self).state_dict()
-        state_dict.update(
-            requires_grad=self.requires_grad,
-            state=self.state
-        )
+        state_dict.update(requires_grad=self.requires_grad, state=self.state)
         return state_dict
 
     def load_state_dict(self, state_dict: Dict[str, Any], strict: bool = True) -> None:
-        requires_grad = state_dict.pop('requires_grad')
-        state = state_dict.pop('state')
+        requires_grad = state_dict.pop("requires_grad")
+        state = state_dict.pop("state")
 
         super(Metric, self).load_state_dict(state_dict)
 
@@ -97,13 +97,13 @@ class Metric(Module, ABC):
 @loads(None)
 class MetricConfig(ModuleConfig):
     requires_grad: bool = False
-    state_name_dataset: Optional[str] = 'dataset_state'
-    state_name_looper: Optional[str] = 'looper_state'
-    state_name_model: Optional[str] = 'model_state'
+    state_name_dataset: Optional[str] = "dataset_state"
+    state_name_looper: Optional[str] = "looper_state"
+    state_name_model: Optional[str] = "model_state"
 
 
 class ScalarMetric(Metric):
-    def __init__(self, reduction: Literal['mean', 'sum'] = 'mean', **kwargs):
+    def __init__(self, reduction: Literal["mean", "sum"] = "mean", **kwargs):
         super().__init__(**kwargs)
         self.reduction = reduction
 
@@ -117,10 +117,13 @@ class ScalarMetric(Metric):
 
         output: torch.Tensor = self.state.output
 
-        self.logger.debug(ScalarLogMessage(
-            tag=f"{dataset_state.name}/{self.name}", step=looper_state.total_iteration,
-            scalar=float(output.detach().cpu().item())
-        ))
+        self.logger.debug(
+            ScalarLogMessage(
+                tag=f"{dataset_state.name}/{self.name}",
+                step=looper_state.total_iteration,
+                scalar=float(output.detach().cpu().item()),
+            )
+        )
 
     def state_dict(self) -> Dict[str, Any]:
         state_dict = super(ScalarMetric, self).state_dict()
@@ -130,7 +133,7 @@ class ScalarMetric(Metric):
         return state_dict
 
     def load_state_dict(self, state_dict: Dict[str, Any], strict: bool = True) -> None:
-        reduction = state_dict.pop('reduction')
+        reduction = state_dict.pop("reduction")
 
         super(ScalarMetric, self).load_state_dict(state_dict)
 
@@ -139,7 +142,7 @@ class ScalarMetric(Metric):
 
 @loads(None)
 class ScalarMetricConfig(MetricConfig):
-    reduction: Literal['mean', 'sum'] = 'mean'
+    reduction: Literal["mean", "sum"] = "mean"
 
 
 @dataclass
@@ -149,8 +152,14 @@ class AveragedMetricState(MetricState):
 
 
 class AveragedMetric(ScalarMetric):
-    def __init__(self, metric: ScalarMetric, avg_decay: float = 0.995, ignore_nan: bool = True, **kwargs):
-        name = kwargs.pop('name')
+    def __init__(
+        self,
+        metric: ScalarMetric,
+        avg_decay: float = 0.995,
+        ignore_nan: bool = True,
+        **kwargs,
+    ):
+        name = kwargs.pop("name")
         name = "Averaged" if name is None else name
         super().__init__(name=f"{name} {metric.name}", **kwargs)
         self.metric = metric
@@ -159,7 +168,7 @@ class AveragedMetric(ScalarMetric):
         self.state = AveragedMetricState()
         self.average_per_dataset = {}
 
-    def initialise(self, modules: Dict[str, 'Module']) -> None:
+    def initialise(self, modules: Dict[str, "Module"]) -> None:
         self.metric.initialise(modules)
 
     def teardown(self, state: State) -> None:
@@ -175,10 +184,13 @@ class AveragedMetric(ScalarMetric):
 
         dataset_average = self.average_per_dataset.get(dataset_state.name, None)
         if dataset_average is not None:
-            self.logger.debug(ScalarLogMessage(
-                tag=f"{dataset_state.name}/{self.name}", step=looper_state.total_iteration,
-                scalar=float(dataset_average.detach().cpu().item())
-            ))
+            self.logger.debug(
+                ScalarLogMessage(
+                    tag=f"{dataset_state.name}/{self.name}",
+                    step=looper_state.total_iteration,
+                    scalar=float(dataset_average.detach().cpu().item()),
+                )
+            )
 
     def step(self, state: State) -> None:
         dataset_state: DatasetState = getattr(state, self.state_name_dataset)
@@ -198,7 +210,10 @@ class AveragedMetric(ScalarMetric):
                 if dataset_average is None:
                     dataset_average = metric_output.detach()
                 else:
-                    dataset_average = self.avg_decay * dataset_average + (1.0 - self.avg_decay) * metric_output.detach()
+                    dataset_average = (
+                        self.avg_decay * dataset_average
+                        + (1.0 - self.avg_decay) * metric_output.detach()
+                    )
             self.average_per_dataset[dataset_state.name] = dataset_average
             self.state.average = self.average_per_dataset[dataset_state.name]
         setattr(state, self.name, self.state)
@@ -211,14 +226,14 @@ class AveragedMetric(ScalarMetric):
         state_dict.update(
             metric_state_dict=self.metric.state_dict(),
             avg_decay=self.avg_decay,
-            state=self.state
+            state=self.state,
         )
         return state_dict
 
     def load_state_dict(self, state_dict: Dict[str, Any], strict: bool = True) -> None:
-        metric_state_dict = state_dict.pop('metric_state_dict')
-        avg_decay = state_dict.pop('avg_decay')
-        state = state_dict.pop('state')
+        metric_state_dict = state_dict.pop("metric_state_dict")
+        avg_decay = state_dict.pop("avg_decay")
+        state = state_dict.pop("state")
 
         super(AveragedMetric, self).load_state_dict(state_dict)
 
@@ -239,7 +254,7 @@ class AveragedMetricConfig(ScalarMetricConfig):
 
     def load(self, *args, **kwargs):
         config_data = dict(self)
-        config_data['metric'] = config_data['metric'].load()
+        config_data["metric"] = config_data["metric"].load()
         return self._loaded_class(**config_data)
 
 
@@ -251,7 +266,7 @@ class MeanMetricState(MetricState):
 
 class MeanMetric(ScalarMetric):
     def __init__(self, metric: ScalarMetric, ignore_nan: bool = True, **kwargs):
-        name = kwargs.pop('name')
+        name = kwargs.pop("name")
         name = "Mean" if name is None else name
         super().__init__(name=f"{name} {metric.name}", **kwargs)
         self.metric = metric
@@ -260,7 +275,7 @@ class MeanMetric(ScalarMetric):
         self.mean_per_dataset = {}
         self.samples_per_dataset = {}
 
-    def initialise(self, modules: Dict[str, 'Module']) -> None:
+    def initialise(self, modules: Dict[str, "Module"]) -> None:
         self.metric.initialise(modules)
 
     def teardown(self, state: State) -> None:
@@ -276,10 +291,13 @@ class MeanMetric(ScalarMetric):
 
         dataset_mean = self.mean_per_dataset.get(dataset_state.name, None)
         if dataset_mean is not None:
-            self.logger.debug(ScalarLogMessage(
-                tag=f"{dataset_state.name}/{self.name}", step=looper_state.total_iteration,
-                scalar=float(dataset_mean.detach().cpu().item())
-            ))
+            self.logger.debug(
+                ScalarLogMessage(
+                    tag=f"{dataset_state.name}/{self.name}",
+                    step=looper_state.total_iteration,
+                    scalar=float(dataset_mean.detach().cpu().item()),
+                )
+            )
 
     def step(self, state: State) -> None:
         dataset_state: DatasetState = getattr(state, self.state_name_dataset)
@@ -301,7 +319,9 @@ class MeanMetric(ScalarMetric):
                     dataset_mean = metric_output.detach()
                     dataset_sample_count = 1
                 else:
-                    dataset_mean = (dataset_mean * dataset_sample_count + metric_output.detach()) / (dataset_sample_count+1)
+                    dataset_mean = (
+                        dataset_mean * dataset_sample_count + metric_output.detach()
+                    ) / (dataset_sample_count + 1)
                     dataset_sample_count += 1
 
             self.mean_per_dataset[dataset_state.name] = dataset_mean
@@ -315,15 +335,12 @@ class MeanMetric(ScalarMetric):
 
     def state_dict(self) -> Dict[str, Any]:
         state_dict = super(MeanMetric, self).state_dict()
-        state_dict.update(
-            metric_state_dict=self.metric.state_dict(),
-            state=self.state
-        )
+        state_dict.update(metric_state_dict=self.metric.state_dict(), state=self.state)
         return state_dict
 
     def load_state_dict(self, state_dict: Dict[str, Any], strict: bool = True) -> None:
-        metric_state_dict = state_dict.pop('metric_state_dict')
-        state = state_dict.pop('state')
+        metric_state_dict = state_dict.pop("metric_state_dict")
+        state = state_dict.pop("state")
 
         super(MeanMetric, self).load_state_dict(state_dict)
 
@@ -342,7 +359,7 @@ class MeanMetricConfig(ScalarMetricConfig):
 
     def load(self, *args, **kwargs):
         config_data = dict(self)
-        config_data['metric'] = config_data['metric'].load()
+        config_data["metric"] = config_data["metric"].load()
         return self._loaded_class(**config_data)
 
 
@@ -352,8 +369,10 @@ class RunningMeanMetricState(MetricState):
 
 
 class RunningMeanMetric(ScalarMetric):
-    def __init__(self, max_len: int, metric: ScalarMetric, ignore_nan: bool = False, **kwargs):
-        name = kwargs.pop('name')
+    def __init__(
+        self, max_len: int, metric: ScalarMetric, ignore_nan: bool = False, **kwargs
+    ):
+        name = kwargs.pop("name")
         name = "Running Mean" if name is None else name
         super().__init__(name=f"{name} {metric.name}", **kwargs)
         self.max_len = max_len
@@ -362,7 +381,7 @@ class RunningMeanMetric(ScalarMetric):
         self.state = RunningMeanMetricState()
         self.deque_per_dataset = defaultdict(lambda: deque(maxlen=self.max_len))
 
-    def initialise(self, modules: Dict[str, 'Module']) -> None:
+    def initialise(self, modules: Dict[str, "Module"]) -> None:
         self.metric.initialise(modules)
 
     def teardown(self, state: State) -> None:
@@ -376,16 +395,21 @@ class RunningMeanMetric(ScalarMetric):
         looper_state: LooperState = getattr(state, self.state_name_looper)
         dataset_state: DatasetState = getattr(state, self.state_name_dataset)
 
-        dataset_values: List[torch.Tensor] = list(self.deque_per_dataset[dataset_state.name])
+        dataset_values: List[torch.Tensor] = list(
+            self.deque_per_dataset[dataset_state.name]
+        )
         if dataset_values is not None and len(dataset_values) > 0:
             if self.ignore_nan:
                 mean = torch.nanmean(torch.stack(dataset_values).squeeze())
             else:
                 mean = torch.mean(torch.stack(dataset_values).squeeze())
-            self.logger.debug(ScalarLogMessage(
-                tag=f"{dataset_state.name}/{self.name}", step=looper_state.total_iteration,
-                scalar=float(mean.detach().cpu().item())
-            ))
+            self.logger.debug(
+                ScalarLogMessage(
+                    tag=f"{dataset_state.name}/{self.name}",
+                    step=looper_state.total_iteration,
+                    scalar=float(mean.detach().cpu().item()),
+                )
+            )
 
     def step(self, state: State) -> None:
         dataset_state: DatasetState = getattr(state, self.state_name_dataset)
@@ -410,15 +434,12 @@ class RunningMeanMetric(ScalarMetric):
 
     def state_dict(self) -> Dict[str, Any]:
         state_dict = super(RunningMeanMetric, self).state_dict()
-        state_dict.update(
-            metric_state_dict=self.metric.state_dict(),
-            state=self.state
-        )
+        state_dict.update(metric_state_dict=self.metric.state_dict(), state=self.state)
         return state_dict
 
     def load_state_dict(self, state_dict: Dict[str, Any], strict: bool = True) -> None:
-        metric_state_dict = state_dict.pop('metric_state_dict')
-        state = state_dict.pop('state')
+        metric_state_dict = state_dict.pop("metric_state_dict")
+        state = state_dict.pop("state")
 
         super(RunningMeanMetric, self).load_state_dict(state_dict)
 
@@ -438,7 +459,7 @@ class RunningMeanMetricConfig(ScalarMetricConfig):
 
     def load(self, *args, **kwargs):
         config_data = dict(self)
-        config_data['metric'] = config_data['metric'].load()
+        config_data["metric"] = config_data["metric"].load()
         return self._loaded_class(**config_data)
 
 
@@ -453,7 +474,7 @@ class MetricList(Module):
         self.metrics = metrics
         self.state = MetricListState()
 
-    def initialise(self, modules: Dict[str, 'Module']) -> None:
+    def initialise(self, modules: Dict[str, "Module"]) -> None:
         for metric in self.metrics:
             metric.initialise(modules)
 
@@ -477,19 +498,19 @@ class MetricList(Module):
                     continue
                 self.state.metrics[key] = state.__dict__.pop(key)
 
-        setattr(state, 'metrics_state', self.state)
+        setattr(state, "metrics_state", self.state)
 
     def state_dict(self) -> Dict[str, Any]:
         state_dict = super(MetricList, self).state_dict()
         state_dict.update(
             metric_state_dicts=[metric.state_dict() for metric in self.metrics],
-            state=self.state
+            state=self.state,
         )
         return state_dict
 
     def load_state_dict(self, state_dict: Dict[str, Any], strict: bool = True) -> None:
-        metric_state_dicts = state_dict.pop('metric_state_dicts')
-        state = state_dict.pop('state')
+        metric_state_dicts = state_dict.pop("metric_state_dicts")
+        state = state_dict.pop("state")
 
         super(MetricList, self).load_state_dict(state_dict)
 
@@ -507,17 +528,30 @@ class MetricListConfig(ModuleConfig):
 
     def load(self, *args, **kwargs):
         config_data = dict(self)
-        config_data['metrics'] = [metric_config.load() for metric_config in config_data['metrics']]
+        config_data["metrics"] = [
+            metric_config.load() for metric_config in config_data["metrics"]
+        ]
         return self._loaded_class(**config_data)
 
 
 class Loss(ScalarMetric):
-    def __init__(self, metrics: List[ScalarMetric], weights: Optional[List[float]] = None,
-                 requires_grad: bool = True, state_name_loss: str = 'loss_state', **kwargs):
+    def __init__(
+        self,
+        metrics: List[ScalarMetric],
+        weights: Optional[List[float]] = None,
+        divide_sum_by_weights: bool = True,
+        requires_grad: bool = True,
+        state_name_loss: str = "loss_state",
+        **kwargs,
+    ):
         if not requires_grad:
             self.logger.warning(f"requires_grad of {self.name} is always set to True.")
-        name = kwargs.pop('name')
-        name = f"Loss({', '.join(map(operator.attrgetter('name'), metrics))})" if name is None else name
+        name = kwargs.pop("name")
+        name = (
+            f"Loss({', '.join(map(operator.attrgetter('name'), metrics))})"
+            if name is None
+            else name
+        )
         super().__init__(name=name, requires_grad=True, **kwargs)
         self.state_name = state_name_loss
 
@@ -529,9 +563,12 @@ class Loss(ScalarMetric):
             self.weights = [1.0 for _ in self.metrics]
         for metric in self.metrics:
             metric.requires_grad = True
+
+        self.divide_sum_by_weights = divide_sum_by_weights
+
         self.state = MetricState()
 
-    def initialise(self, modules: Dict[str, 'Module']) -> None:
+    def initialise(self, modules: Dict[str, "Module"]) -> None:
         for metric in self.metrics:
             metric.initialise(modules)
 
@@ -559,7 +596,8 @@ class Loss(ScalarMetric):
                 else:
                     output = output + metric_state.output * weight
                 weight_sum += weight
-        output = output / weight_sum
+        if self.divide_sum_by_weights:
+            output = output / weight_sum
         return output
 
     def state_dict(self) -> Dict[str, Any]:
@@ -567,14 +605,14 @@ class Loss(ScalarMetric):
         state_dict.update(
             metric_state_dicts=[metric.state_dict() for metric in self.metrics],
             weights=self.weights,
-            state=self.state
+            state=self.state,
         )
         return state_dict
 
     def load_state_dict(self, state_dict: Dict[str, Any], strict: bool = True) -> None:
-        metric_state_dicts = state_dict.pop('metric_state_dicts')
-        weights = state_dict.pop('weights')
-        state = state_dict.pop('state')
+        metric_state_dicts = state_dict.pop("metric_state_dicts")
+        weights = state_dict.pop("weights")
+        state = state_dict.pop("state")
 
         super(Loss, self).load_state_dict(state_dict)
 
@@ -592,9 +630,12 @@ class LossConfig(MetricConfig):
     requires_grad: bool = True
     metrics: List[ScalarMetricConfig]
     weights: Optional[List[float]] = None
-    state_name_loss: str = 'loss_state'
+    divide_sum_by_weights: bool = True
+    state_name_loss: str = "loss_state"
 
     def load(self, *args, **kwargs):
         config_data = dict(self)
-        config_data['metrics'] = [metric_config.load() for metric_config in config_data['metrics']]
+        config_data["metrics"] = [
+            metric_config.load() for metric_config in config_data["metrics"]
+        ]
         return self._loaded_class(**config_data)
