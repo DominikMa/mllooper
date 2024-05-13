@@ -12,16 +12,22 @@ from mllooper.models import ModelState
 class CrossEntropyLoss(ScalarMetric):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.loss_function = torch.nn.CrossEntropyLoss(weight=None, reduction=self.reduction)
+        self.loss_function = torch.nn.CrossEntropyLoss(
+            weight=None, reduction=self.reduction
+        )
 
     def calculate_metric(self, state: State) -> torch.Tensor:
         dataset_state: DatasetState = getattr(state, self.state_name_dataset)
         model_state: ModelState = getattr(state, self.state_name_model)
 
-        if 'class_id' not in dataset_state.data:
-            raise ValueError(f"{self.name} requires a tensor with the class ids to be in "
-                             f"state.{self.state_name_dataset}.data['class_id']")
-        loss = self.loss_function(input=model_state.output, target=dataset_state.data['class_id'])
+        if "class_id" not in dataset_state.data:
+            raise ValueError(
+                f"{self.name} requires a tensor with the class ids to be in "
+                f"state.{self.state_name_dataset}.data['class_id']"
+            )
+        loss = self.loss_function(
+            input=model_state.output, target=dataset_state.data["class_id"]
+        )
         return loss
 
     @torch.no_grad()
@@ -43,10 +49,14 @@ class MSELoss(ScalarMetric):
         dataset_state: DatasetState = getattr(state, self.state_name_dataset)
         model_state: ModelState = getattr(state, self.state_name_model)
 
-        if 'target' not in dataset_state.data:
-            raise ValueError(f"{self.name} requires a tensor with the targets to be in "
-                             f"state.{self.state_name_dataset}.data['target']")
-        loss = self.loss_function(input=model_state.output.squeeze(), target=dataset_state.data['target'])
+        if "target" not in dataset_state.data:
+            raise ValueError(
+                f"{self.name} requires a tensor with the targets to be in "
+                f"state.{self.state_name_dataset}.data['target']"
+            )
+        loss = self.loss_function(
+            input=model_state.output.squeeze(), target=dataset_state.data["target"]
+        )
         return loss
 
     @torch.no_grad()
@@ -68,10 +78,14 @@ class MAELoss(ScalarMetric):
         dataset_state: DatasetState = getattr(state, self.state_name_dataset)
         model_state: ModelState = getattr(state, self.state_name_model)
 
-        if 'target' not in dataset_state.data:
-            raise ValueError(f"{self.name} requires a tensor with the targets to be in "
-                             f"state.{self.state_name_dataset}.data['target']")
-        loss = self.loss_function(input=model_state.output.squeeze(), target=dataset_state.data['target'])
+        if "target" not in dataset_state.data:
+            raise ValueError(
+                f"{self.name} requires a tensor with the targets to be in "
+                f"state.{self.state_name_dataset}.data['target']"
+            )
+        loss = self.loss_function(
+            input=model_state.output.squeeze(), target=dataset_state.data["target"]
+        )
         return loss
 
     @torch.no_grad()
@@ -87,23 +101,27 @@ class MAELossConfig(ScalarMetricConfig):
 class TopK(ScalarMetric):
     def __init__(self, name: Optional[str] = None, k: int = 1, **kwargs):
         if name is not None:
-            name = f'{name}-{k}'
+            name = f"{name}-{k}"
         super().__init__(name=name, **kwargs)
         if self.requires_grad:
             raise RuntimeError(f"Can not calculate grad for topK accuracy.")
 
         self.k = k
-        self.loss_function = torch.nn.CrossEntropyLoss(weight=None, reduction=self.reduction)
+        self.loss_function = torch.nn.CrossEntropyLoss(
+            weight=None, reduction=self.reduction
+        )
 
     def calculate_metric(self, state: State) -> torch.Tensor:
         dataset_state: DatasetState = getattr(state, self.state_name_dataset)
         model_state: ModelState = getattr(state, self.state_name_model)
 
-        if 'class_id' not in dataset_state.data:
-            raise ValueError(f"{self.name} requires a tensor with the class ids to be in "
-                             f"state.{self.state_name_dataset}.data['class_id']")
+        if "class_id" not in dataset_state.data:
+            raise ValueError(
+                f"{self.name} requires a tensor with the class ids to be in "
+                f"state.{self.state_name_dataset}.data['class_id']"
+            )
         topk_indices = torch.topk(model_state.output, self.k)[1]
-        target_indices = dataset_state.data['class_id'].unsqueeze(1)
+        target_indices = dataset_state.data["class_id"].unsqueeze(1)
         accuracy = (topk_indices == target_indices).any(dim=1).float().mean()
         return accuracy
 
