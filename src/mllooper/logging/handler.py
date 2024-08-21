@@ -338,6 +338,7 @@ class TensorBoardHandler(Handler):
                 self.sw.add_embedding(
                     mat=model_embeddings_log.embeddings,
                     metadata=model_embeddings_log.metadata,
+                    metadata_header=model_embeddings_log.metadata_header,
                     label_img=model_embeddings_log.label_img,
                     global_step=step,
                     tag=tag,
