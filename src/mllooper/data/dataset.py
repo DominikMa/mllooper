@@ -110,6 +110,8 @@ class Dataset(SeededModule, ABC):
                 "DataLoader timed out after"
             ):
                 self.logger.warning(f"The {self.name} dataloader timed out.")
+                del self._data_loader
+                self._data_loader = None
                 self.reinitialise_torch_data_loader()
 
                 try:
