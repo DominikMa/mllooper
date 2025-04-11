@@ -17,7 +17,7 @@ _LOGGED_NON_TENSOR_TYPES_GPU = set()
 
 @loads(None)
 class DataLoaderArgs(YAMLBaseConfig):
-    _yaml_tag = '!DataLoaderArgs'
+    _yaml_tag = "!DataLoaderArgs"
 
     batch_size: Optional[int] = 1
     shuffle: bool = False
@@ -45,22 +45,31 @@ class DatasetState(State):
 
 
 class Dataset(SeededModule, ABC):
-
-    def __init__(self, train: bool = True, data_loader_args: Optional[DataLoaderArgs] = None,
-                 dataset_type: Optional[str] = None, device: str = 'cpu',
-                 state_name_dataset: str = 'dataset_state',
-                 **kwargs):
-
+    def __init__(
+        self,
+        train: bool = True,
+        data_loader_args: Optional[DataLoaderArgs] = None,
+        dataset_type: Optional[str] = None,
+        device: str = "cpu",
+        state_name_dataset: str = "dataset_state",
+        **kwargs,
+    ):
         self.type = dataset_type
-        name = kwargs.pop('name', None)
-        name = f"{name} {self.type}" if self.type is not None and name is not None else name
+        name = kwargs.pop("name", None)
+        name = (
+            f"{name} {self.type}"
+            if self.type is not None and name is not None
+            else name
+        )
 
         super().__init__(name=name, **kwargs)
 
         self.train = train
         self.device = torch.device(device)
 
-        self.data_loader_args = data_loader_args if data_loader_args is not None else DataLoaderArgs()
+        self.data_loader_args = (
+            data_loader_args if data_loader_args is not None else DataLoaderArgs()
+        )
 
         self._data_loader = None
         self._data_iterator: Optional[_BaseDataLoaderIter] = None
@@ -77,8 +86,11 @@ class Dataset(SeededModule, ABC):
     @property
     def data_loader(self):
         if self._data_loader is None:
-            self._data_loader = TorchDataLoader(self, worker_init_fn=self._worker_init_fn,
-                                                **self.data_loader_args.model_dump())
+            self._data_loader = TorchDataLoader(
+                self,
+                worker_init_fn=self._worker_init_fn,
+                **self.data_loader_args.model_dump(),
+            )
         return self._data_loader
 
     def step(self, state: State) -> None:
@@ -92,6 +104,25 @@ class Dataset(SeededModule, ABC):
                 del self._data_iterator
             self._data_iterator = None
             raise
+        except RuntimeError as e:
+            # If the dataloader timed out, reinitialise and retry
+            if self.data_loader.timeout > 0 and str(e).startswith(
+                "DataLoader timed out after"
+            ):
+                self.logger.warning(f"The {self.name} dataloader timed out.")
+                del self._data_loader
+                self._data_loader = None
+                self.reinitialise_torch_data_loader()
+
+                try:
+                    data = next(self._data_iterator)
+                except StopIteration:
+                    if self._data_iterator is not None:
+                        del self._data_iterator
+                    self._data_iterator = None
+                    raise
+            else:
+                raise
 
         self.state.iteration += 1
         self.state.total_iteration += 1
@@ -104,7 +135,9 @@ class Dataset(SeededModule, ABC):
     def initialise_torch_data_loader(self):
         if self._data_iterator is None:
             _ = self.random.random()
-            self.logger.debug(f"Initialize dataset for epoch {self.state.total_epoch + 1}")
+            self.logger.debug(
+                f"Initialize dataset for epoch {self.state.total_epoch + 1}"
+            )
             self.state.epoch += 1
             self.state.total_epoch += 1
             self._data_iterator = iter(self.data_loader)
@@ -122,14 +155,18 @@ class Dataset(SeededModule, ABC):
             for key, value in data.items():
                 if not isinstance(value, torch.Tensor):
                     if type(value) not in _LOGGED_NON_TENSOR_TYPES_GPU:
-                        self.logger.debug(f'Expected torch.Tensor for every key in the data dict, '
-                                          f'but got {type(value)} for key {key}.')
+                        self.logger.debug(
+                            f"Expected torch.Tensor for every key in the data dict, "
+                            f"but got {type(value)} for key {key}."
+                        )
                         _LOGGED_NON_TENSOR_TYPES_GPU.add(type(value))
                     continue
                 data[key] = value.to(self.device)
             return data
         else:
-            raise ValueError(f"Expected a tensor or a dict of tensors as data but got {type(data)}.")
+            raise ValueError(
+                f"Expected a tensor or a dict of tensors as data but got {type(data)}."
+            )
 
     @staticmethod
     def _worker_init_fn(x):
@@ -144,16 +181,16 @@ class Dataset(SeededModule, ABC):
             type=self.type,
             device=str(self.device),
             data_loader_args=self.data_loader_args.model_dump(),
-            state=self.state
+            state=self.state,
         )
         return state_dict
 
     def load_state_dict(self, state_dict: Dict[str, Any], strict: bool = True) -> None:
-        train = state_dict.pop('train')
-        dataset_type = state_dict.pop('type')
-        device = state_dict.pop('device')
-        data_loader_args = state_dict.pop('data_loader_args')
-        state = state_dict.pop('state')
+        train = state_dict.pop("train")
+        dataset_type = state_dict.pop("type")
+        device = state_dict.pop("device")
+        data_loader_args = state_dict.pop("data_loader_args")
+        state = state_dict.pop("state")
 
         super(Dataset, self).load_state_dict(state_dict)
 
@@ -171,12 +208,11 @@ class DatasetConfig(SeededModuleConfig, ABC):
     train: bool = True
     data_loader_args: DataLoaderArgs = Field(default_factory=DataLoaderArgs)
     dataset_type: Optional[str] = None
-    device: str = 'cpu'
-    state_name_dataset: str = 'dataset_state'
+    device: str = "cpu"
+    state_name_dataset: str = "dataset_state"
 
 
 class IterableDataset(TorchIterableDataset, Dataset, ABC):
-
     def __getitem__(self, index: int):
         raise NotImplementedError
 
@@ -196,8 +232,13 @@ class DatasetPartition(BaseModel):
 
 
 class PartitionedDataset(Dataset, ABC):
-    def __init__(self, partition: str, partitions: Dict[str, DatasetPartition], dataset_type: Optional[str] = None,
-                 **kwargs):
+    def __init__(
+        self,
+        partition: str,
+        partitions: Dict[str, DatasetPartition],
+        dataset_type: Optional[str] = None,
+        **kwargs,
+    ):
         dataset_type = partition if dataset_type is None else dataset_type
         super().__init__(dataset_type=dataset_type, **kwargs)
         self.partition = partition
@@ -214,31 +255,47 @@ class PartitionedDataset(Dataset, ABC):
             self.state.name = f"{self.state.name} {self.partition}"
 
     @staticmethod
-    def ensure_non_overlapping_partitions(partitions: Dict[str, DatasetPartition]) -> None:
+    def ensure_non_overlapping_partitions(
+        partitions: Dict[str, DatasetPartition]
+    ) -> None:
         checked_partitions: Dict[str, DatasetPartition] = {}
         for partition_name, partition in partitions.items():
             for checked_name, checked in checked_partitions.items():
                 if checked.start <= partition.start < checked.start + checked.size:
-                    raise RuntimeError(f'Start of {partition_name} partition '
-                                       f'lies in {checked_name} partition.')
-                if checked.start < partition.start + partition.size < checked.start + checked.size:
-                    raise RuntimeError(f'End of {partition_name} partition '
-                                       f'lies in {checked_name} partition.')
+                    raise RuntimeError(
+                        f"Start of {partition_name} partition "
+                        f"lies in {checked_name} partition."
+                    )
                 if (
-                    partition.start < checked.start and
-                    checked.start + checked.size <= partition.start + partition.size
+                    checked.start
+                    < partition.start + partition.size
+                    < checked.start + checked.size
                 ):
-                    raise RuntimeError(f'Partition {partition_name} includes'
-                                       f'partition {checked_name}.')
+                    raise RuntimeError(
+                        f"End of {partition_name} partition "
+                        f"lies in {checked_name} partition."
+                    )
+                if (
+                    partition.start < checked.start
+                    and checked.start + checked.size <= partition.start + partition.size
+                ):
+                    raise RuntimeError(
+                        f"Partition {partition_name} includes"
+                        f"partition {checked_name}."
+                    )
             checked_partitions[partition_name] = partition
 
     def identifier_to_representation(self, identifier: str) -> float:
-        identifier_hash = blake2b(identifier.encode('utf-8'), salt=self.seed.to_bytes(16, 'big'))
+        identifier_hash = blake2b(
+            identifier.encode("utf-8"), salt=self.seed.to_bytes(16, "big")
+        )
         return (int(identifier_hash.hexdigest(), 16) % 999999) / 999998
 
     def representation_to_partition(self, representation: float) -> Optional[str]:
         if representation < 0 or representation > 1:
-            raise ValueError(f"Value for the representation must be in the interval [0, 1].")
+            raise ValueError(
+                f"Value for the representation must be in the interval [0, 1]."
+            )
         for partition_name, partition in self.partitions.items():
             if partition.start <= representation < partition.start + partition.size:
                 return partition_name
@@ -255,19 +312,24 @@ class PartitionedDataset(Dataset, ABC):
         state_dict = super(PartitionedDataset, self).state_dict()
         state_dict.update(
             partition=self.partition,
-            partitions={partition_name: partition.model_dump() for partition_name, partition in self.partitions.items()}
+            partitions={
+                partition_name: partition.model_dump()
+                for partition_name, partition in self.partitions.items()
+            },
         )
         return state_dict
 
     def load_state_dict(self, state_dict: Dict[str, Any], strict: bool = True) -> None:
-        partition = state_dict.pop('partition')
-        partitions = state_dict.pop('partitions')
+        partition = state_dict.pop("partition")
+        partitions = state_dict.pop("partitions")
 
         super(PartitionedDataset, self).load_state_dict(state_dict)
 
         self.partition = partition
-        self.partitions = {partition_name: DatasetPartition(**partition)
-                           for partition_name, partition in partitions.items()}
+        self.partitions = {
+            partition_name: DatasetPartition(**partition)
+            for partition_name, partition in partitions.items()
+        }
 
 
 @loads(None)
