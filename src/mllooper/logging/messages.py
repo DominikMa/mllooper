@@ -174,6 +174,7 @@ class ModelGraphLogMessage(TensorBoardLogMessage):
 
     model: nn.Module
     input_to_model: Any
+    use_strict_trace: bool = True
 
     class Config:
         """Allow arbitrary types because `nn.Module` can not be checked"""

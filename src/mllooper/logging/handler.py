@@ -331,6 +331,7 @@ class TensorBoardHandler(Handler):
                 self.sw.add_graph(
                     model=model_graph_log.model,
                     input_to_model=model_graph_log.input_to_model,
+                    use_strict_trace=model_graph_log.use_strict_trace,
                 )
 
             elif isinstance(record.msg, EmbeddingsLogMessage):
