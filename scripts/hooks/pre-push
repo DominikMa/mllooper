@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+set -e
+
+echo "Running pre-push checks..."
+
+echo "  ruff check..."
+uv run ruff check src/ tests/
+
+echo "  ruff format..."
+uv run ruff format --check src/ tests/
+
+echo "  pyright..."
+uv run pyright src/
+
+echo "  pytest..."
+uv run pytest -q
+
+echo "All checks passed!"
