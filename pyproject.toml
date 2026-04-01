@@ -28,7 +28,7 @@ dependencies = [
     "gitpython",
     "pyyaml",
     "pydantic",
-    "yaloader>=1.0.1",
+    "yaloader~=0.0.3",
     "torch>=2.0",
     "torchvision",
     "tensorboard",
