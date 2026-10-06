@@ -13,3 +13,6 @@ uv sync --no-dev                    # GPU, without dev tools
 ```
 
 For CPU mode, also pass `--no-group gpu --group cpu` to `uv run`.
+
+Run checks with `bash scripts/check`. Enable the pre-push hook with
+`git config core.hooksPath scripts/hooks`.

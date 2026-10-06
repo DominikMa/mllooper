@@ -1,18 +1,4 @@
 #!/usr/bin/env bash
-set -e
+set -euo pipefail
 
-echo "Running pre-push checks..."
-
-echo "  ruff check..."
-uv run ruff check src/ tests/
-
-echo "  ruff format..."
-uv run ruff format --check src/ tests/
-
-echo "  pyright..."
-uv run pyright src/
-
-echo "  pytest..."
-uv run pytest -q
-
-echo "All checks passed!"
+exec bash "$(git rev-parse --show-toplevel)/scripts/check"
