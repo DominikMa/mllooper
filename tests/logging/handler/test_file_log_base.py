@@ -40,6 +40,4 @@ def test_extra_log_postfix(tmp_path):
     )
     file_log_base_config._loaded_class = dict
     output = file_log_base_config.load()
-    assert str(output["log_dir"]).startswith(
-        str(tmp_path.joinpath("bbb", "ccc", "aaa"))
-    )
+    assert str(output["log_dir"]).startswith(str(tmp_path.joinpath("bbb", "ccc", "aaa")))

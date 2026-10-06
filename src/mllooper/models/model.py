@@ -1,45 +1,47 @@
+from __future__ import annotations
+
 import os
 from abc import ABC
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, Optional, List, Union, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 import torch
 import torch.distributed as distributed
 from torch import nn
 from yaloader import loads
 
-from mllooper import SeededModule, State, SeededModuleConfig, Module, ModuleConfig
-from mllooper.data import DatasetState
+from mllooper import Module, ModuleConfig, SeededModule, SeededModuleConfig, State
+
+if TYPE_CHECKING:
+    from mllooper.data import DatasetState
 
 
 @dataclass
 class ModelState(State):
-    output: Optional[Any] = None
+    output: Any | None = None
 
 
 class Model(SeededModule, ABC):
     def __init__(
         self,
         torch_model: nn.Module,
-        module_load_file: Optional[Path] = None,
-        device: Union[str, List[str]] = "cpu",
-        output_device: Optional[str] = None,
+        module_load_file: Path | None = None,
+        device: str | list[str] = "cpu",
+        output_device: str | None = None,
         state_name_dataset: str = "dataset_state",
         state_name_model: str = "model_state",
-        force_gradient: Optional[bool] = None,
+        force_gradient: bool | None = None,
         compile_model: bool = False,
-        data_parallel: Optional[Literal["DP", "DDP"]] = None,
+        data_parallel: Literal["DP", "DDP"] | None = None,
         ddp_find_unused_parameters: bool = False,
-        **kwargs,
-    ):
+        **kwargs: Any,
+    ) -> None:
         super().__init__(**kwargs)
         devices = device if isinstance(device, list) else [device]
         self.devices = [torch.device(device) for device in devices]
         self.device = self.devices[0]
-        self.output_device = (
-            torch.device(output_device) if output_device is not None else None
-        )
+        self.output_device = torch.device(output_device) if output_device is not None else None
         self.module = torch_model.to(self.device)
 
         self.compile_model = compile_model
@@ -48,13 +50,9 @@ class Model(SeededModule, ABC):
         if data_parallel is None:
             self._parallel_module = None
             if len(devices) > 1:
-                raise RuntimeError(
-                    f"To use multiple devices for the model data_parallel needs to be set to DP or DDP."
-                )
+                raise RuntimeError("To use multiple devices for the model data_parallel needs to be set to DP or DDP.")
         elif data_parallel == "DP":
-            self._parallel_module = nn.DataParallel(
-                self.module, device_ids=self.devices, output_device=output_device
-            )
+            self._parallel_module = nn.DataParallel(self.module, device_ids=self.devices, output_device=output_device)
         elif data_parallel == "DDP":
             self._parallel_module = nn.parallel.DistributedDataParallel(
                 self.module,
@@ -65,7 +63,7 @@ class Model(SeededModule, ABC):
         else:
             raise RuntimeError(f"Unsupported data parallel mode: {data_parallel}")
 
-        self._compiled_module: Optional[nn.Module] = None
+        self._compiled_module: nn.Module | None = None
         if self.compile_model:
             if self._parallel_module is not None:
                 self._compiled_module = torch.compile(self._parallel_module)
@@ -79,7 +77,7 @@ class Model(SeededModule, ABC):
             module_state_dict = torch.load(module_load_file, map_location=self.device)
             self.module.load_state_dict(module_state_dict)
 
-        self.force_gradient: Optional[bool] = force_gradient
+        self.force_gradient: bool | None = force_gradient
         self.state = ModelState()
 
     def step(self, state: State) -> None:
@@ -94,13 +92,9 @@ class Model(SeededModule, ABC):
         if self._compiled_module is not None:
             self._compiled_module.train() if dataset_state.train else self._compiled_module.eval()
 
-        self._parallel_module: Optional[nn.Module]
+        self._parallel_module: nn.Module | None
 
-        with torch.set_grad_enabled(
-            self.force_gradient
-            if self.force_gradient is not None
-            else dataset_state.train
-        ):
+        with torch.set_grad_enabled(self.force_gradient if self.force_gradient is not None else dataset_state.train):
             if self._compiled_module is not None:
                 module_output = self._compiled_module(module_input)
             elif self._parallel_module is not None:
@@ -118,11 +112,7 @@ class Model(SeededModule, ABC):
     def format_module_input(data: Any) -> Any:
         if isinstance(data, torch.Tensor):
             return data
-        elif (
-            isinstance(data, Dict)
-            and "input" in data.keys()
-            and isinstance(data["input"], torch.Tensor)
-        ):
+        elif isinstance(data, dict) and "input" in data and isinstance(data["input"], torch.Tensor):
             return data["input"]
         else:
             raise NotImplementedError
@@ -134,7 +124,7 @@ class Model(SeededModule, ABC):
         else:
             raise NotImplementedError
 
-    def trainable_parameters(self, param_groups: Optional[List[Dict]]) -> List[Dict]:
+    def trainable_parameters(self, param_groups: list[dict] | None) -> list[dict]:
         if param_groups is None:
             return [{"params": self.module.parameters()}]
         # Make a copy so that the parameters do not end up in the pydantic model
@@ -145,8 +135,8 @@ class Model(SeededModule, ABC):
             raise NotImplementedError
         return param_groups
 
-    def state_dict(self) -> Dict[str, Any]:
-        state_dict = super(Model, self).state_dict()
+    def state_dict(self) -> dict[str, Any]:
+        state_dict = super().state_dict()
         # TODO check copy of torch module, deepcopy?
         state_dict.update(
             device=str(self.device),
@@ -155,12 +145,12 @@ class Model(SeededModule, ABC):
         )
         return state_dict
 
-    def load_state_dict(self, state_dict: Dict[str, Any], strict: bool = True) -> None:
+    def load_state_dict(self, state_dict: dict[str, Any], strict: bool = True) -> None:
         device = state_dict.pop("device")
         module_state_dict = state_dict.pop("module_state_dict")
         state = state_dict.pop("state")
 
-        super(Model, self).load_state_dict(state_dict)
+        super().load_state_dict(state_dict)
 
         self.device = device
         self.module.load_state_dict(module_state_dict)
@@ -170,19 +160,19 @@ class Model(SeededModule, ABC):
 
 @loads(None)
 class ModelConfig(SeededModuleConfig):
-    module_load_file: Optional[Path] = None
-    device: Union[str, List[str]] = "cpu"
-    output_device: Optional[str] = None
+    module_load_file: Path | None = None
+    device: str | list[str] = "cpu"
+    output_device: str | None = None
     state_name_dataset: str = "dataset_state"
     state_name_model: str = "model_state"
-    force_gradient: Optional[bool] = None
+    force_gradient: bool | None = None
     compile_model: bool = False
-    data_parallel: Optional[Literal["DP", "DDP"]] = None
+    data_parallel: Literal["DP", "DDP"] | None = None
     ddp_find_unused_parameters: bool = False
 
 
 class IdentityModel(Model):
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:
         torch_model = nn.Identity()
         super().__init__(torch_model, **kwargs)
 
@@ -197,12 +187,12 @@ class DDPSetup(Module):
         self,
         rank: int,
         world_size: int,
-        backend: Optional[str] = None,
-        master_address: Optional[str] = None,
-        master_port: Optional[str] = None,
+        backend: str | None = None,
+        master_address: str | None = None,
+        master_port: str | None = None,
         set_device: bool = True,
-        **kwargs,
-    ):
+        **kwargs: Any,
+    ) -> None:
         super().__init__(**kwargs)
         self.rank = rank
         self.world_size = world_size
@@ -227,9 +217,9 @@ class DDPSetup(Module):
 @loads(DDPSetup)
 class DDPSetupConfig(ModuleConfig):
     name: str = "DDPSetup"
-    backend: Optional[str] = None
+    backend: str | None = None
     rank: int
     world_size: int
-    master_address: Optional[str] = "localhost"
-    master_port: Optional[str | int] = None
+    master_address: str | None = "localhost"
+    master_port: str | int | None = None
     set_device: bool = True

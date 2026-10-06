@@ -1,22 +1,25 @@
+from __future__ import annotations
+
 import random
 import string
-from typing import Tuple, Union, List
+from typing import Any
 
 import numpy as np
 from yaloader import loads
 
-from mllooper.data import PartitionedDataset, PartitionedDatasetConfig, IterableDataset
+from mllooper.data.dataset import IterableDataset, PartitionedDataset, PartitionedDatasetConfig
 
 
 class AlwaysClassZeroDataset(PartitionedDataset):
-    def __init__(self, nr_features: Union[int, Tuple[int, ...]] = 2, nr_samples: int = 1000, **kwargs):
+    def __init__(self, nr_features: int | tuple[int, ...] = 2, nr_samples: int = 1000, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         if isinstance(nr_features, int):
-            nr_features = (nr_features, )
+            nr_features = (nr_features,)
         self.features = nr_features
         self.samples = nr_samples
-        self.data, self.labels, self.identifiers = self.generate_data(self.features, nr_samples,
-                                                                      seed=self.random.randint(0, 99999))
+        self.data, self.labels, self.identifiers = self.generate_data(
+            self.features, nr_samples, seed=self.random.randint(0, 99999)
+        )
 
         indices = []
         identifiers = []
@@ -31,7 +34,9 @@ class AlwaysClassZeroDataset(PartitionedDataset):
         self.identifiers = identifiers
 
     @staticmethod
-    def generate_data(nr_features: Tuple[int, ...] = (2,), nr_samples: int = 1000, seed: int = 0) -> Tuple[np.ndarray, np.ndarray, List[str]]:
+    def generate_data(
+        nr_features: tuple[int, ...] = (2,), nr_samples: int = 1000, seed: int = 0
+    ) -> tuple[np.ndarray, np.ndarray, list[str]]:
         previous_random_state = np.random.get_state()
         np.random.seed(seed)
         data = np.random.uniform(low=-1, high=1, size=[nr_samples, *nr_features]).astype(np.float32)
@@ -39,36 +44,29 @@ class AlwaysClassZeroDataset(PartitionedDataset):
         np.random.set_state(previous_random_state)
 
         previous_random_state = random.getstate()
-        random.seed(seed+1)
-        identifiers = [''.join(random.choices(string.ascii_uppercase + string.digits, k=20)) for _ in range(nr_samples)]
+        random.seed(seed + 1)
+        identifiers = ["".join(random.choices(string.ascii_uppercase + string.digits, k=20)) for _ in range(nr_samples)]
         random.setstate(previous_random_state)
 
         return data, labels, identifiers
 
-    def __getitem__(self, index: int):
-        return {
-            'input': self.data[index],
-            'class_id': self.labels[index]
-        }
+    def __getitem__(self, index: int) -> Any:
+        return {"input": self.data[index], "class_id": self.labels[index]}
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.data)
 
 
 @loads(AlwaysClassZeroDataset)
 class AlwaysClassZeroDatasetConfig(PartitionedDatasetConfig):
-    nr_features: Union[int, Tuple[int, ...]] = 2
+    nr_features: int | tuple[int, ...] = 2
     nr_samples: int = 1000
 
 
 class AlwaysClassZeroItDataset(AlwaysClassZeroDataset, IterableDataset):
-
-    def __next__(self):
+    def __next__(self) -> Any:
         index = self.random.randint(0, len(self.data))
-        return {
-            'input': self.data[index],
-            'class_id': self.labels[index]
-        }
+        return {"input": self.data[index], "class_id": self.labels[index]}
 
 
 @loads(AlwaysClassZeroItDataset)
@@ -77,15 +75,18 @@ class AlwaysClassZeroItDatasetConfig(AlwaysClassZeroDatasetConfig):
 
 
 class RandomClassDataset(PartitionedDataset):
-    def __init__(self, nr_features: Union[int, Tuple[int, ...]] = 2, nr_classes: int = 2, nr_samples: int = 1000, **kwargs):
+    def __init__(
+        self, nr_features: int | tuple[int, ...] = 2, nr_classes: int = 2, nr_samples: int = 1000, **kwargs: Any
+    ) -> None:
         super().__init__(**kwargs)
         if isinstance(nr_features, int):
-            nr_features = (nr_features, )
+            nr_features = (nr_features,)
         self.features = nr_features
         self.classes = nr_classes
         self.samples = nr_samples
-        self.data, self.labels, self.identifiers = self.generate_data(self.features, nr_classes, nr_samples,
-                                                                      seed=self.random.randint(0, 99999))
+        self.data, self.labels, self.identifiers = self.generate_data(
+            self.features, nr_classes, nr_samples, seed=self.random.randint(0, 99999)
+        )
 
         indices = []
         identifiers = []
@@ -100,7 +101,9 @@ class RandomClassDataset(PartitionedDataset):
         self.identifiers = identifiers
 
     @staticmethod
-    def generate_data(nr_features: Tuple[int, ...] = (2,), nr_classes: int = 2, nr_samples: int = 1000, seed: int = 0) -> Tuple[np.ndarray, np.ndarray, List[str]]:
+    def generate_data(
+        nr_features: tuple[int, ...] = (2,), nr_classes: int = 2, nr_samples: int = 1000, seed: int = 0
+    ) -> tuple[np.ndarray, np.ndarray, list[str]]:
         previous_random_state = np.random.get_state()
         np.random.seed(seed)
         data = np.random.uniform(low=-1, high=1, size=[nr_samples, *nr_features]).astype(np.float32)
@@ -109,36 +112,29 @@ class RandomClassDataset(PartitionedDataset):
 
         previous_random_state = random.getstate()
         random.seed(seed + 1)
-        identifiers = [''.join(random.choices(string.ascii_uppercase + string.digits, k=20)) for _ in range(nr_samples)]
+        identifiers = ["".join(random.choices(string.ascii_uppercase + string.digits, k=20)) for _ in range(nr_samples)]
         random.setstate(previous_random_state)
 
         return data, labels, identifiers
 
-    def __getitem__(self, index: int):
-        return {
-            'input': self.data[index],
-            'class_id': self.labels[index]
-        }
+    def __getitem__(self, index: int) -> Any:
+        return {"input": self.data[index], "class_id": self.labels[index]}
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.data)
 
 
 @loads(RandomClassDataset)
 class RandomClassDatasetConfig(PartitionedDatasetConfig):
-    nr_features: Union[int, Tuple[int, ...]] = 2
+    nr_features: int | tuple[int, ...] = 2
     nr_classes: int = 2
     nr_samples: int = 1000
 
 
 class RandomClassItDataset(RandomClassDataset, IterableDataset):
-
-    def __next__(self):
+    def __next__(self) -> Any:
         index = self.random.randint(0, len(self.data))
-        return {
-            'input': self.data[index],
-            'label': self.labels[index]
-        }
+        return {"input": self.data[index], "label": self.labels[index]}
 
 
 @loads(RandomClassItDataset)

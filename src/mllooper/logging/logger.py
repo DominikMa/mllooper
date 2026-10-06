@@ -1,30 +1,39 @@
-from typing import Dict, Optional
+from __future__ import annotations
+
+from typing import Any
 
 from yaloader import loads
 
-from mllooper import Module, State, ModuleConfig, LooperState
+from mllooper import LooperState, Module, ModuleConfig, State
 from mllooper.logging.messages import ModelLogMessage
 from mllooper.models import Model
 
 
 class ModelLogger(Module):
-    def __init__(self, add_step: bool = False, log_at_teardown: bool = False, log_at_looper_stop: bool = False,
-                 state_name_looper: str = 'looper_state', module_name_model: str = 'model', **kwargs):
+    def __init__(
+        self,
+        add_step: bool = False,
+        log_at_teardown: bool = False,
+        log_at_looper_stop: bool = False,
+        state_name_looper: str = "looper_state",
+        module_name_model: str = "model",
+        **kwargs: Any,
+    ) -> None:
         super().__init__(**kwargs)
         self.add_step = add_step
         self.log_at_teardown = log_at_teardown
         self.log_at_looper_stop = log_at_looper_stop
-        self.model: Optional[Model] = None
+        self.model: Model | None = None
         self.state_name_looper: str = state_name_looper
         self.module_name_model: str = module_name_model
 
-    def initialise(self, modules: Dict[str, 'Module']) -> None:
+    def initialise(self, modules: dict[str, Module]) -> None:
         try:
             model = modules.get(self.module_name_model)
             assert isinstance(model, Model)
             self.model = model
-        except KeyError:
-            raise KeyError(f"{self.name} needs a model to be in the initialization dictionary.")
+        except KeyError as exc:
+            raise KeyError(f"{self.name} needs a model to be in the initialization dictionary.") from exc
 
     def _log(self, state: State) -> None:
         looper_state: LooperState = getattr(state, self.state_name_looper)
@@ -34,7 +43,7 @@ class ModelLogger(Module):
     def step_callback(self, state: State) -> None:
         if not self.log_at_looper_stop:
             return
-        if not hasattr(state, 'looper_state') or not isinstance(getattr(state, self.state_name_looper), LooperState):
+        if not hasattr(state, "looper_state") or not isinstance(getattr(state, self.state_name_looper), LooperState):
             return
 
         looper_state: LooperState = getattr(state, self.state_name_looper)
@@ -56,9 +65,9 @@ class ModelLogger(Module):
 
 @loads(ModelLogger)
 class ModelLoggerConfig(ModuleConfig):
-    name: str = 'ModelLogger'
+    name: str = "ModelLogger"
     add_step: bool = False
     log_at_teardown: bool = False
     log_at_looper_stop: bool = False
-    state_name_looper: str = 'looper_state'
-    module_name_model: str = 'model'
+    state_name_looper: str = "looper_state"
+    module_name_model: str = "model"

@@ -1,15 +1,20 @@
+from __future__ import annotations
+
 import itertools
-from typing import Dict, Optional, Literal, List
+from typing import TYPE_CHECKING, Any, Literal
 
 import torch
-from torch.optim import Optimizer
 from yaloader import loads
 
 from mllooper import Module, ModuleConfig, State
-from mllooper.data import DatasetState
-from mllooper.metrics import MetricState
 from mllooper.models import Model
-from mllooper.trainer.optimizer import OptimizerConfig
+
+if TYPE_CHECKING:
+    from torch.optim import Optimizer
+
+    from mllooper.data import DatasetState
+    from mllooper.metrics import MetricState
+    from mllooper.trainer.optimizer import OptimizerConfig
 
 
 class Trainer(Module):
@@ -21,12 +26,12 @@ class Trainer(Module):
         enable_grad_scaler: bool = False,
         state_name_dataset: str = "dataset_state",
         state_name_loss: str = "loss_state",
-        module_name_model: str | List[str] = "model",
-        **kwargs,
-    ):
+        module_name_model: str | list[str] = "model",
+        **kwargs: Any,
+    ) -> None:
         super().__init__(**kwargs)
         self._optimizer_config = optimizer
-        self.optimizer: Optional[Optimizer] = None
+        self.optimizer: Optimizer | None = None
 
         self.zero_grad_at_end_of_step = zero_grad_at_end_of_step
         self.enable_cudnn_auto_tuner = enable_cudnn_auto_tuner
@@ -35,34 +40,28 @@ class Trainer(Module):
         if self.enable_cudnn_auto_tuner:
             torch.backends.cudnn.benchmark = True
 
-        self.grad_scaler = (
-            torch.cuda.amp.GradScaler() if self.enable_grad_scaler else None
-        )
+        self.grad_scaler = torch.cuda.amp.GradScaler() if self.enable_grad_scaler else None
 
         self.state_name_dataset: str = state_name_dataset
         self.state_name_loss: str = state_name_loss
-        self.module_name_models: List[str] = (
-            module_name_model
-            if isinstance(module_name_model, list)
-            else [module_name_model]
+        self.module_name_models: list[str] = (
+            module_name_model if isinstance(module_name_model, list) else [module_name_model]
         )
 
-    def initialise(self, modules: Dict[str, Module]) -> None:
+    def initialise(self, modules: dict[str, Module]) -> None:
         trainable_parameters = []
         for module_name_model in self.module_name_models:
             try:
                 model = modules[module_name_model]
                 assert isinstance(model, Model)
-                model_trainable_parameters = model.trainable_parameters(
-                    self._optimizer_config.params
-                )
+                model_trainable_parameters = model.trainable_parameters(self._optimizer_config.params)
                 trainable_parameters.append(model_trainable_parameters)
-            except KeyError:
+            except KeyError as exc:
                 raise KeyError(
                     f"{self.name} needs a model with the name {module_name_model} "
                     f"to be in the initialization dictionary "
                     f"in order to get the models trainable parameters."
-                )
+                ) from exc
 
         # TODO clean up
         joined_trainable_parameters = trainable_parameters[0]
@@ -70,14 +69,8 @@ class Trainer(Module):
             for idx, param_dict in enumerate(model_trainable_parameters):
                 if "params" not in param_dict:
                     continue
-                parameters = (
-                    joined_trainable_parameters[idx]["params"]
-                    if "params" in joined_trainable_parameters[idx]
-                    else []
-                )
-                joined_trainable_parameters[idx]["params"] = itertools.chain(
-                    parameters, param_dict["params"]
-                )
+                parameters = joined_trainable_parameters[idx].get("params", [])
+                joined_trainable_parameters[idx]["params"] = itertools.chain(parameters, param_dict["params"])
 
         self._optimizer_config.params = joined_trainable_parameters
         self.optimizer = self._optimizer_config.load()
@@ -113,11 +106,11 @@ class TrainerConfig(ModuleConfig):
     enable_grad_scaler: bool = False
     state_name_dataset: str = "dataset_state"
     state_name_loss: str = "loss_state"
-    module_name_model: str | List[str] = "model"
+    module_name_model: str | list[str] = "model"
 
 
 class PrecisionAutoCast(Module):
-    def __init__(self, device_type: str, **kwargs):
+    def __init__(self, device_type: str, **kwargs: Any) -> None:
         super().__init__(**kwargs)
 
         self._init_count = 0
@@ -126,9 +119,9 @@ class PrecisionAutoCast(Module):
 
         self.autocast = torch.autocast(device_type=device_type)
 
-    def initialise(self, modules: Dict[str, Module]) -> None:
+    def initialise(self, modules: dict[str, Module]) -> None:
         self._init_count += 1
-        self.initialised = True if self._init_count == 2 else False
+        self.initialised = self._init_count == 2
 
     def step(self, state: State) -> None:
         if not self.initialised:

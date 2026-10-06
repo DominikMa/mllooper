@@ -1,11 +1,12 @@
+from __future__ import annotations
+
 import logging
 import sys
 from datetime import datetime
-from logging import Handler
-from logging import LogRecord
+from logging import Handler, LogRecord
 from logging.handlers import BufferingHandler
 from pathlib import Path
-from typing import Optional, List
+from typing import Any
 
 import coloredlogs
 import numpy as np
@@ -17,28 +18,26 @@ from yaloader import loads
 
 from mllooper import Module, ModuleConfig, State
 from mllooper.logging.messages import (
-    TensorBoardLogMessage,
-    TextLogMessage,
-    ImageLogMessage,
-    HistogramLogMessage,
-    PointCloudLogMessage,
-    ScalarLogMessage,
+    BytesIOLogMessage,
+    ConfigLogMessage,
+    EmbeddingsLogMessage,
     FigureLogMessage,
+    HistogramLogMessage,
+    ImageLogMessage,
     ModelGraphLogMessage,
     ModelLogMessage,
-    ConfigLogMessage,
-    BytesIOLogMessage,
+    PointCloudLogMessage,
+    ScalarLogMessage,
     StringIOLogMessage,
     TensorBoardAddCustomScalarsLogMessage,
-    EmbeddingsLogMessage,
+    TensorBoardLogMessage,
+    TextLogMessage,
 )
 
 _TIMESTAMP = None
 
 
-def get_not_existing_log_dir(
-    log_dir: Path, timestamp: datetime, create_log_dir: bool = True
-) -> Path:
+def get_not_existing_log_dir(log_dir: Path, timestamp: datetime, create_log_dir: bool = True) -> Path:
     global _TIMESTAMP
 
     if _TIMESTAMP is not None:
@@ -65,26 +64,26 @@ def get_not_existing_log_dir(
 class BufferingLogHandler(Handler):
     def __init__(
         self,
-        targets: Optional[List[Handler]] = None,
+        targets: list[Handler] | None = None,
         flush_on_close: bool = False,
-        **kwargs,
-    ):
+        **kwargs: Any,
+    ) -> None:
         super().__init__(**kwargs)
         self.targets = targets
         self.flush_on_close = flush_on_close
         self.buffer = []
 
-    def emit(self, record):
+    def emit(self, record: logging.LogRecord) -> None:
         self.buffer.append(record)
 
-    def set_targets(self, targets: List[Handler]):
+    def set_targets(self, targets: list[Handler]) -> None:
         self.acquire()
         try:
             self.targets = targets
         finally:
             self.release()
 
-    def flush(self):
+    def flush(self) -> None:
         self.acquire()
         try:
             if self.targets:
@@ -96,7 +95,7 @@ class BufferingLogHandler(Handler):
         finally:
             self.release()
 
-    def close(self):
+    def close(self) -> None:
         try:
             if self.flush_on_close:
                 self.flush()
@@ -110,11 +109,11 @@ class BufferingLogHandler(Handler):
 
 
 class LogHandler(Module):
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
-        self.handler: Optional[Handler] = None
+        self.handler: Handler | None = None
 
-    def set_handler(self, handler: Handler):
+    def set_handler(self, handler: Handler) -> None:
         if self.handler is None:
             self.handler = handler
             logging.getLogger().addHandler(self.handler)
@@ -137,8 +136,8 @@ class FileLogBase(LogHandler):
         log_dir: Path,
         log_dir_exist_ok: bool = False,
         create_log_dir: bool = True,
-        **kwargs,
-    ):
+        **kwargs: Any,
+    ) -> None:
         super().__init__(**kwargs)
         self.log_dir = log_dir
 
@@ -156,38 +155,30 @@ class FileLogBaseConfig(LogHandlerConfig, extra=Extra.allow):
     log_dir_exist_ok: bool = False
     create_log_dir: bool = True
 
-    timestamp: Optional[datetime] = datetime.now().replace(microsecond=0)
+    timestamp: datetime | None = datetime.now().replace(microsecond=0)
 
-    def load(self, *args, **kwargs):
+    def load(self, *args: Any, **kwargs: Any) -> Any:
         if not hasattr(self, "_loaded_class") or self._loaded_class is None:
             raise NotImplementedError
 
-        all_model_field_names = {field_name for field_name in self.model_fields.keys()}
-        all_model_field_names.update(
-            {field.alias for field in self.model_fields.values()}
-        )
-        extra_keys = [
-            value for value in self.model_dump() if value not in all_model_field_names
-        ]
+        all_model_field_names = {field_name for field_name in self.model_fields}
+        all_model_field_names.update({field.alias for field in self.model_fields.values()})
+        extra_keys = [value for value in self.model_dump() if value not in all_model_field_names]
 
-        if len(list((filter(lambda e: not e.startswith("log_postfix_"), extra_keys)))):
-            raise ValueError(
-                f"All extra keys must start with 'log_postfix_' but got: {extra_keys}"
-            )
+        if len(list(filter(lambda e: not e.startswith("log_postfix_"), extra_keys))):
+            raise ValueError(f"All extra keys must start with 'log_postfix_' but got: {extra_keys}")
         for extra_key in extra_keys:
             try:
                 int(extra_key.removeprefix("log_postfix_"))
-            except ValueError:
+            except ValueError as exc:
                 raise ValueError(
                     f"All extra keys must start with 'log_postfix_' followed by a number. Got: {extra_key}"
-                )
+                ) from exc
 
         data = dict(self)
         data.pop("timestamp")
 
-        log_postfixes = sorted(
-            extra_keys, key=lambda e: int(e.removeprefix("log_postfix_"))
-        )
+        log_postfixes = sorted(extra_keys, key=lambda e: int(e.removeprefix("log_postfix_")))
 
         log_dir = self.log_dir
         for log_postfix in log_postfixes:
@@ -206,15 +197,13 @@ class FileLogBaseConfig(LogHandlerConfig, extra=Extra.allow):
             data["log_dir"] = log_dir
             return self._loaded_class(**data)
 
-        data["log_dir"] = get_not_existing_log_dir(
-            log_dir, self.timestamp, self.create_log_dir
-        )
+        data["log_dir"] = get_not_existing_log_dir(log_dir, self.timestamp, self.create_log_dir)
         data["create_log_dir"] = False
         return self._loaded_class(**data)
 
 
 class TextFileLog(FileLogBase):
-    def __init__(self, level: int = logging.WARNING, **kwargs):
+    def __init__(self, level: int = logging.WARNING, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         handler = logging.FileHandler(self.log_dir.joinpath("log"))
         handler.setLevel(level)
@@ -233,7 +222,7 @@ class TextFileLogConfig(FileLogBaseConfig):
 
 
 class ConsoleLog(LogHandler):
-    def __init__(self, level: int = logging.WARNING, **kwargs):
+    def __init__(self, level: int = logging.WARNING, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         handler = logging.StreamHandler(sys.stderr)
         handler.setLevel(level)
@@ -246,11 +235,9 @@ class ConsoleLog(LogHandler):
 
         self.set_handler(handler)
 
-    def set_handler(self, handler: Handler):
+    def set_handler(self, handler: Handler) -> None:
         root_logger = logging.getLogger()
-        if any(
-            map(lambda handler: isinstance(handler, ConsoleLog), root_logger.handlers)
-        ):
+        if any(map(lambda handler: isinstance(handler, ConsoleLog), root_logger.handlers)):
             if self.handler is not None:
                 self.handler.close()
                 self.handler = None
@@ -268,7 +255,7 @@ class ConsoleLogConfig(LogHandlerConfig):
 
 
 class TensorBoardHandler(Handler):
-    def __init__(self, log_dir: Path):
+    def __init__(self, log_dir: Path) -> None:
         super().__init__()
         self.log_dir = log_dir
         # noinspection PyTypeChecker
@@ -276,7 +263,7 @@ class TensorBoardHandler(Handler):
 
     def close(self) -> None:
         self.sw.close()
-        super(TensorBoardHandler, self).close()
+        super().close()
 
     def emit(self, record: LogRecord) -> None:
         # Skip if it isn't a subclass of `LogMessage`
@@ -297,9 +284,7 @@ class TensorBoardHandler(Handler):
 
             elif isinstance(record.msg, TextLogMessage):
                 text_log: TextLogMessage = record.msg
-                self.sw.add_text(
-                    tag, text_string=text_log.formatted_text, global_step=step
-                )
+                self.sw.add_text(tag, text_string=text_log.formatted_text, global_step=step)
 
             elif isinstance(record.msg, ImageLogMessage):
                 img_log: ImageLogMessage = record.msg
@@ -317,14 +302,9 @@ class TensorBoardHandler(Handler):
                 point_cloud_log: PointCloudLogMessage = record.msg
 
                 vertices = torch.unsqueeze(point_cloud_log.points, dim=0)
-                if point_cloud_log.colors is not None:
-                    colors = torch.unsqueeze(point_cloud_log.colors, dim=0)
-                else:
-                    colors = None
+                colors = torch.unsqueeze(point_cloud_log.colors, dim=0) if point_cloud_log.colors is not None else None
 
-                self.sw.add_mesh(
-                    tag, vertices=vertices, colors=colors, global_step=step
-                )
+                self.sw.add_mesh(tag, vertices=vertices, colors=colors, global_step=step)
 
             elif isinstance(record.msg, ModelGraphLogMessage):
                 model_graph_log: ModelGraphLogMessage = record.msg
@@ -351,7 +331,7 @@ class TensorBoardHandler(Handler):
 
 
 class FileHandler(Handler):
-    def __init__(self, log_dir: Path):
+    def __init__(self, log_dir: Path) -> None:
         super().__init__()
         self.log_dir = log_dir
 
@@ -379,9 +359,7 @@ class FileHandler(Handler):
 
             model_state_dict = model_log.model.state_dict()
             file_name = (
-                f"{model_log.name}-{ model_log.step}.pth"
-                if model_log.step is not None
-                else f"{model_log.name}.pth"
+                f"{model_log.name}-{model_log.step}.pth" if model_log.step is not None else f"{model_log.name}.pth"
             )
             file_path = self.log_dir.joinpath(file_name)
             torch.save(model_state_dict, file_path)
@@ -410,13 +388,11 @@ class FileHandler(Handler):
                 file_name = file_name.with_stem(f"{file_name.stem}-{string_log.step}")
             file_path = self.log_dir.joinpath(file_name)
 
-            file_path.write_text(
-                string_log.text.getvalue(), encoding=string_log.encoding
-            )
+            file_path.write_text(string_log.text.getvalue(), encoding=string_log.encoding)
 
 
 class TensorBoardLog(FileLogBase):
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         handler = TensorBoardHandler(log_dir=self.log_dir)
         self.set_handler(handler)
@@ -428,7 +404,7 @@ class TensorBoardLogConfig(FileLogBaseConfig):
 
 
 class FileLog(FileLogBase):
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         handler = FileHandler(log_dir=self.log_dir)
         self.set_handler(handler)
@@ -440,7 +416,7 @@ class FileLogConfig(FileLogBaseConfig):
 
 
 class MLTextFileLog(TextFileLog):
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self.handler.addFilter(TensorBoardLogFilter())
 
@@ -451,7 +427,7 @@ class MLTextFileLogConfig(TextFileLogConfig):
 
 
 class MLConsoleLog(ConsoleLog):
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self.handler.addFilter(TensorBoardLogFilter())
 
@@ -462,7 +438,5 @@ class MLConsoleLogConfig(ConsoleLogConfig):
 
 
 class TensorBoardLogFilter(logging.Filter):
-    def filter(self, record):
-        if isinstance(record.msg, TensorBoardLogMessage):
-            return False
-        return True
+    def filter(self, record: logging.LogRecord) -> bool:
+        return not isinstance(record.msg, TensorBoardLogMessage)

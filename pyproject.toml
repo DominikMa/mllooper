@@ -108,6 +108,8 @@ unsupported-base = "ignore"
 [tool.pyright]
 pythonVersion = "3.10"
 typeCheckingMode = "basic"
+venvPath = "."
+venv = ".venv"
 
 [dependency-groups]
 # CPU development: uv sync --no-group gpu --group cpu

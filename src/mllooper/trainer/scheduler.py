@@ -1,43 +1,44 @@
-from abc import ABC
-from typing import Dict, Optional
+from __future__ import annotations
 
-from torch.optim import lr_scheduler, Optimizer
+from abc import ABC
+from typing import TYPE_CHECKING, Any
+
+from torch.optim import Optimizer, lr_scheduler
 from yaloader import loads
 
-from mllooper import Module, State, ModuleConfig
-from mllooper.state_tests import StateTest, StateTestConfig
-from mllooper.trainer import Trainer
+from mllooper import Module, ModuleConfig, State
+from mllooper.trainer.trainer import Trainer
+
+if TYPE_CHECKING:
+    from mllooper.state_tests import StateTest, StateTestConfig
 
 
 class Scheduler(Module, ABC):
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
-        self.optimizer: Optional[Optimizer] = None
-        self.lr_scheduler: Optional[lr_scheduler._LRScheduler] = None
+        self.optimizer: Optimizer | None = None
+        self.lr_scheduler: lr_scheduler._LRScheduler | None = None
 
-    def initialise(self, modules: Dict[str, Module]) -> None:
+    def initialise(self, modules: dict[str, Module]) -> None:
         try:
-            trainer: Trainer = modules['trainer']
+            trainer: Trainer = modules["trainer"]
             assert isinstance(trainer, Trainer)
             self.optimizer = trainer.optimizer
-        except KeyError:
-            raise KeyError(f"{self.name} needs a trainer to be in the initialization dictionary "
-                           f"in order to get the optimizer.")
+        except KeyError as exc:
+            raise KeyError(
+                f"{self.name} needs a trainer to be in the initialization dictionary in order to get the optimizer."
+            ) from exc
 
 
 class StepLR(Scheduler):
-    def __init__(self, gamma: float, step_test: StateTest, **kwargs):
+    def __init__(self, gamma: float, step_test: StateTest, **kwargs: Any) -> None:
         super().__init__(**kwargs)
         self.gamma = gamma
         self.step_test = step_test
 
-    def initialise(self, modules: Dict[str, Module]) -> None:
-        super(StepLR, self).initialise(modules)
-        self.lr_scheduler = lr_scheduler.StepLR(
-            optimizer=self.optimizer,
-            step_size=1,
-            gamma=self.gamma
-        )
+    def initialise(self, modules: dict[str, Module]) -> None:
+        super().initialise(modules)
+        self.lr_scheduler = lr_scheduler.StepLR(optimizer=self.optimizer, step_size=1, gamma=self.gamma)
 
     def step(self, state: State) -> None:
         if self.step_test(state):
@@ -47,11 +48,11 @@ class StepLR(Scheduler):
 
 @loads(StepLR)
 class StepLRConfig(ModuleConfig):
-    name: str = 'Scheduler StepLR'
+    name: str = "Scheduler StepLR"
     gamma: float
     step_test: StateTestConfig
 
-    def load(self, *args, **kwargs):
+    def load(self, *args: Any, **kwargs: Any) -> Any:
         config_data = dict(self)
-        config_data['step_test'] = config_data['step_test'].load()
+        config_data["step_test"] = config_data["step_test"].load()
         return self._loaded_class(**config_data)

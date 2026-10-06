@@ -1,14 +1,17 @@
+from __future__ import annotations
+
 import logging
 from abc import ABC
-from typing import Optional
+from typing import TYPE_CHECKING
 
 from yaloader import YAMLBaseConfig, loads
 
-from mllooper import State
+if TYPE_CHECKING:
+    from mllooper import State
 
 
 class StateTest(ABC):
-    def __init__(self, name: Optional[str] = None):
+    def __init__(self, name: str | None = None) -> None:
         self.name = name
         self.logger = logging.getLogger(self.name)
 
@@ -18,5 +21,4 @@ class StateTest(ABC):
 
 @loads(None)
 class StateTestConfig(YAMLBaseConfig, ABC):
-    name: Optional[str] = None
-
+    name: str | None = None
