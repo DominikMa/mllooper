@@ -217,5 +217,4 @@ cython_debug/
 
 .vscode/
 
-uv.lock
 docs/build/

@@ -19,6 +19,7 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Typing :: Typed",
 ]
 dependencies = [
@@ -27,8 +28,8 @@ dependencies = [
     "click",
     "gitpython",
     "pyyaml",
-    "pydantic",
-    "yaloader~=0.0.3",
+    "pydantic>=2,<3",
+    "yaloader @ git+https://github.com/DominikMa/yaloader.git@master",
     "torch>=2.0",
     "torchvision",
     "tensorboard",
@@ -52,6 +53,24 @@ docs = [
     "sphinx>=7.4.7",
     "sphinx-remove-toctrees>=1.0.0.post1",
 ]
+
+# Keep PyPI's CUDA-enabled Linux builds by default.
+[tool.uv]
+default-groups = ["dev", "gpu"]
+conflicts = [[{ group = "cpu" }, { group = "gpu" }]]
+
+[tool.uv.sources]
+torch = [
+    { index = "pytorch-cpu", group = "cpu", marker = "sys_platform != 'darwin'" },
+]
+torchvision = [
+    { index = "pytorch-cpu", group = "cpu", marker = "sys_platform != 'darwin'" },
+]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -91,6 +110,15 @@ pythonVersion = "3.10"
 typeCheckingMode = "basic"
 
 [dependency-groups]
+# CPU development: uv sync --no-group gpu --group cpu
+cpu = [
+    "torch>=2.0",
+    "torchvision",
+]
+gpu = [
+    "torch>=2.0",
+    "torchvision",
+]
 dev = [
     "autodoc-pydantic>=2.2.0",
     "coverage>=7.10.7",
