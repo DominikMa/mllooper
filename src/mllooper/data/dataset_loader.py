@@ -1,17 +1,20 @@
 from __future__ import annotations
 
-from collections.abc import Generator
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 from yaloader import loads
 
 from mllooper import LooperState, SeededModule, SeededModuleConfig, State
+from mllooper.data.dataset import DatasetConfig
 from mllooper.module import StopRun
+from mllooper.state_tests.state_test import StateTestConfig
 
 if TYPE_CHECKING:
-    from mllooper.data.dataset import Dataset, DatasetConfig
-    from mllooper.state_tests import StateTest, StateTestConfig
+    from collections.abc import Generator
+
+    from mllooper.data.dataset import Dataset
+    from mllooper.state_tests import StateTest
 
 
 @dataclass
@@ -101,9 +104,11 @@ class DatasetLoader(SeededModule):
     def step_callback(self, state: State) -> None:
         self.current_dataset.step_callback(state)
 
-    def log(self, state: State) -> None:
+    def log(self, state: State) -> bool:
         self.current_dataset.log(state)
-        super().log(state)
+        logged = super().log(state)
+
+        return logged
 
     def _dataset_generator(self) -> Generator[Dataset, None, None]:
         while True:
@@ -122,7 +127,7 @@ class DatasetLoader(SeededModule):
 
 
 @loads(DatasetLoader)
-class DatasetLoaderConfig(SeededModuleConfig):
+class DatasetLoaderConfig(SeededModuleConfig[DatasetLoader]):
     datasets: dict[str, DatasetConfig]
     max_iterations: int | None = None
     max_epochs: int | None = None
@@ -130,7 +135,10 @@ class DatasetLoaderConfig(SeededModuleConfig):
     state_name_dataset_loader: str = "dataset_loader_state"
     state_name_looper: str = "looper_state"
 
-    def load(self, *args: Any, **kwargs: Any) -> Any:
+    def load(self, *args: Any, **kwargs: Any) -> DatasetLoader:
+        if self._loaded_class is None:
+            raise RuntimeError(f"{type(self).__name__} has no registered constructor.")
+
         config_data = dict(self)
 
         config_data["datasets"] = {

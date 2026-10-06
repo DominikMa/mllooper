@@ -38,6 +38,7 @@ class ModelLogger(Module):
     def _log(self, state: State) -> None:
         looper_state: LooperState = getattr(state, self.state_name_looper)
         step = looper_state.total_iteration if self.add_step else None
+        assert self.model is not None
         self.logger.info(ModelLogMessage(name=self.model.name, model=self.model.module, step=step))
 
     def step_callback(self, state: State) -> None:
@@ -49,6 +50,7 @@ class ModelLogger(Module):
         looper_state: LooperState = getattr(state, self.state_name_looper)
         if looper_state.stop_loop or looper_state.stop_step:
             step = looper_state.total_iteration
+            assert self.model is not None
             self.logger.info(ModelLogMessage(name=self.model.name, model=self.model.module, step=step))
 
     def teardown(self, state: State) -> None:
@@ -60,11 +62,12 @@ class ModelLogger(Module):
             step = looper_state.total_iteration
         except AttributeError:
             step = 0
+        assert self.model is not None
         self.logger.info(ModelLogMessage(name=self.model.name, model=self.model.module, step=step))
 
 
 @loads(ModelLogger)
-class ModelLoggerConfig(ModuleConfig):
+class ModelLoggerConfig(ModuleConfig[ModelLogger]):
     name: str = "ModelLogger"
     add_step: bool = False
     log_at_teardown: bool = False

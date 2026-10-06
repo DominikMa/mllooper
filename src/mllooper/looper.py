@@ -2,16 +2,20 @@ from __future__ import annotations
 
 import datetime
 from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from pydantic import Extra, field_validator, model_validator
+from pydantic import Field, field_validator, model_validator
 from yaloader import loads
 
-from mllooper import Module, ModuleConfig, State
+from mllooper import Module, State
+from mllooper.module import ModuleConfig
 from mllooper.utils import full_name
 
+if TYPE_CHECKING:
+    from collections.abc import Iterator
 
-def iterate_modules(modules: dict[str, Module | str], skip_references: bool = False) -> tuple[str, Module]:
+
+def iterate_modules(modules: dict[str, Module | str], skip_references: bool = False) -> Iterator[tuple[str, Module]]:
     """Iterator over a modules dictionary which resolves references and always yields a Module.
 
     :param modules: A dictionary of Modules or references of Modules
@@ -70,7 +74,7 @@ class Looper(Module):
         self.inner_state: State = State()
         setattr(self.inner_state, self.state_name_looper, LooperState())
 
-        self._iterations_per_second = None
+        self._iterations_per_second: float | None = None
         self._last_log_iteration_count = 0
         self._last_log_iteration_time = datetime.datetime.now()
 
@@ -160,9 +164,9 @@ class Looper(Module):
 
             iterations_per_second = iterations_since_last_log / time_since_last_log.total_seconds()
 
-            try:
+            if self._iterations_per_second is not None:
                 self._iterations_per_second = self._iterations_per_second * 0.9 + iterations_per_second * 0.1
-            except TypeError:
+            else:
                 self._iterations_per_second = iterations_per_second
 
             # self.logger.info(f"Doing {self._iterations_per_second:0.2f} iterations per second")
@@ -192,7 +196,7 @@ class Looper(Module):
         )
         return state_dict
 
-    def load_state_dict(self, state_dict: dict[str, any], strict: bool = True) -> None:
+    def load_state_dict(self, state_dict: dict[str, Any], strict: bool = True) -> None:
         for key, module_state_dict in state_dict["modules"].items():
             if key not in self.modules:
                 if strict:
@@ -203,7 +207,10 @@ class Looper(Module):
             if isinstance(module_state_dict, str):
                 self.modules[key] = module_state_dict
             else:
-                self.modules[key].load_state_dict(module_state_dict)
+                module = self.modules[key]
+                if not isinstance(module, Module):
+                    raise ValueError(f"The module key {key} refers to a reference, not a module.")
+                module.load_state_dict(module_state_dict)
 
         self.inner_state = state_dict["state"]
         self._last_log_iteration_count = state_dict["_last_log_iteration_count"]
@@ -214,13 +221,18 @@ class Looper(Module):
 
 
 @loads(Looper)
-class LooperConfig(ModuleConfig, extra=Extra.allow):
-    modules: dict[str, ModuleConfig | str] = {}
+class LooperConfig(ModuleConfig[Looper], extra="allow"):
+    modules: dict[str, ModuleConfig | str] = Field(default_factory=dict)
     state_name_looper: str = "looper_state"
 
-    def load(self, *args: Any, **kwargs: Any) -> Any:
+    def load(self, *args: Any, **kwargs: Any) -> Looper:
+        if self._loaded_class is None:
+            raise RuntimeError(f"{type(self).__name__} has no registered constructor.")
+
         all_model_field_names = {field_name for field_name in self.model_fields}
-        all_model_field_names.update({field.alias for field in self.model_fields.values()})
+        all_model_field_names.update(
+            {field.alias for field in type(self).model_fields.values() if field.alias is not None}
+        )
         extra_keys = [value for value in self.model_dump() if value not in all_model_field_names]
 
         modules: dict[str, ModuleConfig | str] = self.modules
@@ -252,7 +264,7 @@ class LooperConfig(ModuleConfig, extra=Extra.allow):
     @model_validator(mode="before")
     def put_extra_in_modules(cls, values: dict[str, Any]) -> dict[str, Any]:
         all_model_field_names = {field_name for field_name in cls.model_fields}
-        all_model_field_names.update({field.alias for field in cls.model_fields.values()})
+        all_model_field_names.update({field.alias for field in cls.model_fields.values() if field.alias is not None})
 
         extra_keys = [value for value in values if value not in all_model_field_names]
         assert set(extra_keys) == set(values).difference(all_model_field_names)
@@ -312,7 +324,7 @@ class LooperIterationStop(Module):
         }
         return state_dict
 
-    def load_state_dict(self, state_dict: dict[str, any], strict: bool = True) -> None:
+    def load_state_dict(self, state_dict: dict[str, Any], strict: bool = True) -> None:
         name = full_name(self)
         if name not in state_dict:
             raise ValueError(f"Expected the state dict to have a key '{name}' but it has not.")
@@ -324,7 +336,7 @@ class LooperIterationStop(Module):
 
 
 @loads(LooperIterationStop)
-class LooperIterationStopConfig(ModuleConfig):
+class LooperIterationStopConfig(ModuleConfig[LooperIterationStop]):
     step_iteration_limit: int | None = None
     total_iteration_limit: int | None = None
     state_name_looper: str = "looper_state"

@@ -5,6 +5,7 @@ import string
 from typing import Any
 
 import numpy as np
+from typing_extensions import TypeVar
 from yaloader import loads
 
 from mllooper.data.dataset import IterableDataset, PartitionedDataset, PartitionedDatasetConfig
@@ -57,8 +58,13 @@ class AlwaysClassZeroDataset(PartitionedDataset):
         return len(self.data)
 
 
+_AlwaysClassZeroDataset = TypeVar(
+    "_AlwaysClassZeroDataset", bound=AlwaysClassZeroDataset, default=AlwaysClassZeroDataset
+)
+
+
 @loads(AlwaysClassZeroDataset)
-class AlwaysClassZeroDatasetConfig(PartitionedDatasetConfig):
+class AlwaysClassZeroDatasetConfig(PartitionedDatasetConfig[_AlwaysClassZeroDataset]):
     nr_features: int | tuple[int, ...] = 2
     nr_samples: int = 1000
 
@@ -70,7 +76,7 @@ class AlwaysClassZeroItDataset(AlwaysClassZeroDataset, IterableDataset):
 
 
 @loads(AlwaysClassZeroItDataset)
-class AlwaysClassZeroItDatasetConfig(AlwaysClassZeroDatasetConfig):
+class AlwaysClassZeroItDatasetConfig(AlwaysClassZeroDatasetConfig[AlwaysClassZeroItDataset]):
     pass
 
 
@@ -124,8 +130,11 @@ class RandomClassDataset(PartitionedDataset):
         return len(self.data)
 
 
+_RandomClassDataset = TypeVar("_RandomClassDataset", bound=RandomClassDataset, default=RandomClassDataset)
+
+
 @loads(RandomClassDataset)
-class RandomClassDatasetConfig(PartitionedDatasetConfig):
+class RandomClassDatasetConfig(PartitionedDatasetConfig[_RandomClassDataset]):
     nr_features: int | tuple[int, ...] = 2
     nr_classes: int = 2
     nr_samples: int = 1000
@@ -138,5 +147,5 @@ class RandomClassItDataset(RandomClassDataset, IterableDataset):
 
 
 @loads(RandomClassItDataset)
-class RandomClassItDatasetConfig(RandomClassDatasetConfig):
+class RandomClassItDatasetConfig(RandomClassDatasetConfig[RandomClassItDataset]):
     pass

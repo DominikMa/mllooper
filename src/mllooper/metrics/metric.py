@@ -8,6 +8,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any, Literal
 
 import torch
+from typing_extensions import TypeVar
 from yaloader import loads
 
 from mllooper import LooperState, Module, ModuleConfig, State
@@ -43,26 +44,33 @@ class Metric(Module, ABC):
         self.state_name_looper: str | None = state_name_looper
         self.state_name_model: str | None = state_name_model
 
-    def log(self, state: State) -> None:
+    def _get_state(self, state: State, name: str | None) -> Any:
+        if name is None:
+            raise AttributeError("No state name is configured.")
+        return getattr(state, name)
+
+    def log(self, state: State) -> bool:
         """Save last log time per dataset name."""
         try:
-            dataset_state: DatasetState = getattr(state, self.state_name_dataset)
+            dataset_state: DatasetState = self._get_state(state, self.state_name_dataset)
         except AttributeError as e:
             self.logger.warning(e)
-            return
+            return False
 
         dataset_name = dataset_state.name
         now = datetime.now()
         last_log_time = self._last_log_time_per_dataset.get(dataset_name, None)
         if last_log_time and now - last_log_time < self.log_time_delta:
-            return
+            return False
 
         self._last_log_time = now
         self._last_log_time_per_dataset[dataset_name] = now
         self._log(state)
 
+        return True
+
     def step(self, state: State) -> None:
-        dataset_state: DatasetState = getattr(state, self.state_name_dataset)
+        dataset_state: DatasetState = self._get_state(state, self.state_name_dataset)
         self.state.output = None
 
         with torch.set_grad_enabled(dataset_state.train and self.requires_grad):
@@ -98,8 +106,11 @@ class Metric(Module, ABC):
         raise NotImplementedError
 
 
+_Metric = TypeVar("_Metric", bound=Metric, default=Any)
+
+
 @loads(None)
-class MetricConfig(ModuleConfig):
+class MetricConfig(ModuleConfig[_Metric]):
     requires_grad: bool = False
     state_name_dataset: str | None = "dataset_state"
     state_name_looper: str | None = "looper_state"
@@ -116,10 +127,13 @@ class ScalarMetric(Metric):
         raise NotImplementedError
 
     def _log(self, state: State) -> None:
-        looper_state: LooperState = getattr(state, self.state_name_looper)
-        dataset_state: DatasetState = getattr(state, self.state_name_dataset)
+        looper_state: LooperState = self._get_state(state, self.state_name_looper)
+        dataset_state: DatasetState = self._get_state(state, self.state_name_dataset)
 
-        output: torch.Tensor = self.state.output
+        output = self.state.output
+        if output is None:
+            return
+        assert isinstance(output, torch.Tensor)
 
         self.logger.debug(
             ScalarLogMessage(
@@ -144,8 +158,11 @@ class ScalarMetric(Metric):
         self.reduction = reduction
 
 
+_ScalarMetric = TypeVar("_ScalarMetric", bound=ScalarMetric, default=Any)
+
+
 @loads(None)
-class ScalarMetricConfig(MetricConfig):
+class ScalarMetricConfig(MetricConfig[_ScalarMetric]):
     reduction: Literal["mean", "sum"] = "mean"
 
 
@@ -169,7 +186,7 @@ class AveragedMetric(ScalarMetric):
         self.metric = metric
         self.avg_decay = avg_decay
         self.ignore_nan = ignore_nan
-        self.state = AveragedMetricState()
+        self.state: AveragedMetricState = AveragedMetricState()
         self.average_per_dataset = {}
 
     def initialise(self, modules: dict[str, Module]) -> None:
@@ -178,13 +195,15 @@ class AveragedMetric(ScalarMetric):
     def teardown(self, state: State) -> None:
         self.metric.teardown(state)
 
-    def log(self, state: State) -> None:
-        super().log(state)
+    def log(self, state: State) -> bool:
+        logged = super().log(state)
         self.metric.log(state)
 
+        return logged
+
     def _log(self, state: State) -> None:
-        looper_state: LooperState = getattr(state, self.state_name_looper)
-        dataset_state: DatasetState = getattr(state, self.state_name_dataset)
+        looper_state: LooperState = self._get_state(state, self.state_name_looper)
+        dataset_state: DatasetState = self._get_state(state, self.state_name_dataset)
 
         dataset_average = self.average_per_dataset.get(dataset_state.name, None)
         if dataset_average is not None:
@@ -197,7 +216,7 @@ class AveragedMetric(ScalarMetric):
             )
 
     def step(self, state: State) -> None:
-        dataset_state: DatasetState = getattr(state, self.state_name_dataset)
+        dataset_state: DatasetState = self._get_state(state, self.state_name_dataset)
         self.state.output = None
         self.state.average = None
 
@@ -248,12 +267,15 @@ class AveragedMetric(ScalarMetric):
 
 
 @loads(AveragedMetric)
-class AveragedMetricConfig(ScalarMetricConfig):
+class AveragedMetricConfig(ScalarMetricConfig[AveragedMetric]):
     metric: ScalarMetricConfig
     avg_decay: float = 0.995
     ignore_nan: bool = True
 
-    def load(self, *args: Any, **kwargs: Any) -> Any:
+    def load(self, *args: Any, **kwargs: Any) -> AveragedMetric:
+        if self._loaded_class is None:
+            raise RuntimeError(f"{type(self).__name__} has no registered constructor.")
+
         config_data = dict(self)
         config_data["metric"] = config_data["metric"].load()
         return self._loaded_class(**config_data)
@@ -272,7 +294,7 @@ class MeanMetric(ScalarMetric):
         super().__init__(name=f"{name} {metric.name}", **kwargs)
         self.metric = metric
         self.ignore_nan = ignore_nan
-        self.state = MeanMetricState()
+        self.state: MeanMetricState = MeanMetricState()
         self.mean_per_dataset = {}
         self.samples_per_dataset = {}
 
@@ -282,13 +304,15 @@ class MeanMetric(ScalarMetric):
     def teardown(self, state: State) -> None:
         self.metric.teardown(state)
 
-    def log(self, state: State) -> None:
-        super().log(state)
+    def log(self, state: State) -> bool:
+        logged = super().log(state)
         self.metric.log(state)
 
+        return logged
+
     def _log(self, state: State) -> None:
-        looper_state: LooperState = getattr(state, self.state_name_looper)
-        dataset_state: DatasetState = getattr(state, self.state_name_dataset)
+        looper_state: LooperState = self._get_state(state, self.state_name_looper)
+        dataset_state: DatasetState = self._get_state(state, self.state_name_dataset)
 
         dataset_mean = self.mean_per_dataset.get(dataset_state.name, None)
         if dataset_mean is not None:
@@ -301,7 +325,7 @@ class MeanMetric(ScalarMetric):
             )
 
     def step(self, state: State) -> None:
-        dataset_state: DatasetState = getattr(state, self.state_name_dataset)
+        dataset_state: DatasetState = self._get_state(state, self.state_name_dataset)
         self.state.output = None
         self.state.mean = None
 
@@ -354,11 +378,14 @@ class MeanMetric(ScalarMetric):
 
 
 @loads(MeanMetric)
-class MeanMetricConfig(ScalarMetricConfig):
+class MeanMetricConfig(ScalarMetricConfig[MeanMetric]):
     metric: ScalarMetricConfig
     ignore_nan: bool = True
 
-    def load(self, *args: Any, **kwargs: Any) -> Any:
+    def load(self, *args: Any, **kwargs: Any) -> MeanMetric:
+        if self._loaded_class is None:
+            raise RuntimeError(f"{type(self).__name__} has no registered constructor.")
+
         config_data = dict(self)
         config_data["metric"] = config_data["metric"].load()
         return self._loaded_class(**config_data)
@@ -367,6 +394,7 @@ class MeanMetricConfig(ScalarMetricConfig):
 @dataclass
 class RunningMeanMetricState(MetricState):
     output: Any | None = None
+    running_mean: Any | None = None
 
 
 class RunningMeanMetric(ScalarMetric):
@@ -377,7 +405,7 @@ class RunningMeanMetric(ScalarMetric):
         self.max_len = max_len
         self.metric = metric
         self.ignore_nan = ignore_nan
-        self.state = RunningMeanMetricState()
+        self.state: RunningMeanMetricState = RunningMeanMetricState()
         self.deque_per_dataset = defaultdict(lambda: deque(maxlen=self.max_len))
 
     def initialise(self, modules: dict[str, Module]) -> None:
@@ -386,13 +414,15 @@ class RunningMeanMetric(ScalarMetric):
     def teardown(self, state: State) -> None:
         self.metric.teardown(state)
 
-    def log(self, state: State) -> None:
-        super().log(state)
+    def log(self, state: State) -> bool:
+        logged = super().log(state)
         self.metric.log(state)
 
+        return logged
+
     def _log(self, state: State) -> None:
-        looper_state: LooperState = getattr(state, self.state_name_looper)
-        dataset_state: DatasetState = getattr(state, self.state_name_dataset)
+        looper_state: LooperState = self._get_state(state, self.state_name_looper)
+        dataset_state: DatasetState = self._get_state(state, self.state_name_dataset)
 
         dataset_values: list[torch.Tensor] = list(self.deque_per_dataset[dataset_state.name])
         if dataset_values is not None and len(dataset_values) > 0:
@@ -409,7 +439,7 @@ class RunningMeanMetric(ScalarMetric):
             )
 
     def step(self, state: State) -> None:
-        dataset_state: DatasetState = getattr(state, self.state_name_dataset)
+        dataset_state: DatasetState = self._get_state(state, self.state_name_dataset)
         self.state.output = None
         self.state.running_mean = None
 
@@ -449,12 +479,15 @@ class RunningMeanMetric(ScalarMetric):
 
 
 @loads(RunningMeanMetric)
-class RunningMeanMetricConfig(ScalarMetricConfig):
+class RunningMeanMetricConfig(ScalarMetricConfig[RunningMeanMetric]):
     max_len: int
     metric: ScalarMetricConfig
     ignore_nan: bool = False
 
-    def load(self, *args: Any, **kwargs: Any) -> Any:
+    def load(self, *args: Any, **kwargs: Any) -> RunningMeanMetric:
+        if self._loaded_class is None:
+            raise RuntimeError(f"{type(self).__name__} has no registered constructor.")
+
         config_data = dict(self)
         config_data["metric"] = config_data["metric"].load()
         return self._loaded_class(**config_data)
@@ -479,10 +512,12 @@ class MetricList(Module):
         for metric in self.metrics:
             metric.teardown(state)
 
-    def log(self, state: State) -> None:
-        super().log(state)
+    def log(self, state: State) -> bool:
+        logged = super().log(state)
         for metric in self.metrics:
             metric.log(state)
+
+        return logged
 
     def step(self, state: State) -> None:
         self.state.metrics = {}
@@ -495,7 +530,7 @@ class MetricList(Module):
                     continue
                 self.state.metrics[key] = state.__dict__.pop(key)
 
-        state.metrics_state = self.state
+        setattr(state, "metrics_state", self.state)  # noqa: B010 - State attributes are dynamic.
 
     def state_dict(self) -> dict[str, Any]:
         state_dict = super().state_dict()
@@ -520,10 +555,13 @@ class MetricList(Module):
 
 
 @loads(MetricList)
-class MetricListConfig(ModuleConfig):
+class MetricListConfig(ModuleConfig[MetricList]):
     metrics: list[MetricConfig]
 
-    def load(self, *args: Any, **kwargs: Any) -> Any:
+    def load(self, *args: Any, **kwargs: Any) -> MetricList:
+        if self._loaded_class is None:
+            raise RuntimeError(f"{type(self).__name__} has no registered constructor.")
+
         config_data = dict(self)
         config_data["metrics"] = [metric_config.load() for metric_config in config_data["metrics"]]
         return self._loaded_class(**config_data)
@@ -547,7 +585,7 @@ class Loss(ScalarMetric):
         self.state_name = state_name_loss
 
         self.metrics = metrics
-        self.weights = weights
+        self.weights: list[float] = weights if weights is not None else [1.0 for _ in metrics]
         if self.weights is not None and len(self.metrics) != len(self.weights):
             raise ValueError("Metrics and weights have to to of same length.")
         elif self.weights is None:
@@ -567,13 +605,15 @@ class Loss(ScalarMetric):
         for metric in self.metrics:
             metric.teardown(state)
 
-    def log(self, state: State) -> None:
-        super().log(state)
+    def log(self, state: State) -> bool:
+        logged = super().log(state)
         for metric in self.metrics:
             metric.log(state)
 
+        return logged
+
     def calculate_metric(self, state: State) -> torch.Tensor:
-        output = None
+        output: torch.Tensor | None = None
         weight_sum = 0.0
         for metric, weight in zip(self.metrics, self.weights, strict=False):
             keys_in_state_before_metric = set(state.__dict__.keys())
@@ -582,8 +622,11 @@ class Loss(ScalarMetric):
                 if key in keys_in_state_before_metric:
                     continue
                 metric_state: MetricState = state.__dict__.pop(key)
+                assert isinstance(metric_state.output, torch.Tensor)
                 output = metric_state.output * weight if output is None else output + metric_state.output * weight
                 weight_sum += weight
+        if output is None:
+            raise ValueError("Loss requires at least one metric output.")
         if self.divide_sum_by_weights:
             output = output / weight_sum
         return output
@@ -614,14 +657,17 @@ class Loss(ScalarMetric):
 
 
 @loads(Loss)
-class LossConfig(MetricConfig):
+class LossConfig(MetricConfig[Loss]):
     requires_grad: bool = True
     metrics: list[ScalarMetricConfig]
     weights: list[float] | None = None
     divide_sum_by_weights: bool = True
     state_name_loss: str = "loss_state"
 
-    def load(self, *args: Any, **kwargs: Any) -> Any:
+    def load(self, *args: Any, **kwargs: Any) -> Loss:
+        if self._loaded_class is None:
+            raise RuntimeError(f"{type(self).__name__} has no registered constructor.")
+
         config_data = dict(self)
         config_data["metrics"] = [metric_config.load() for metric_config in config_data["metrics"]]
         return self._loaded_class(**config_data)

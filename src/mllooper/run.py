@@ -41,7 +41,7 @@ def install_package(package_name: str) -> None:
 
 def is_valid_module_name(module_name: str) -> bool:
     pattern = r"^[a-zA-Z_][a-zA-Z0-9_]*$"
-    return re.fullmatch(pattern, module_name)
+    return re.fullmatch(pattern, module_name) is not None
 
 
 def import_as_known_module(module_name: str) -> None:
@@ -74,11 +74,14 @@ def import_from_disk(module_name: str) -> None:
         raise RuntimeError(f"Can not import {module_name} as {name} from {location}.")
     elif spec.origin != str(location):
         raise RuntimeError(
-            f"Can not import {module_name} as {name} from {location} because there is a spec with the same name at {spec.origin}."
+            f"Can not import {module_name} as {name} from {location} because "
+            f"there is a spec with the same name at {spec.origin}."
         )
 
     module = module_from_spec(spec)
     sys.modules[name] = module
+    if spec.loader is None:
+        raise ModuleNotFoundError(f"No loader available for {module_name}")
     spec.loader.exec_module(module)
     # add parent path to sys path to be able to reimport the module on multiprocessing
     sys.path.insert(0, str(module_path.parent))
@@ -108,7 +111,7 @@ def import_module(module_name: str) -> None:
     raise ModuleNotFoundError(f"Could not import {module_name}")
 
 
-def git_clone_module(module_git_url: str) -> None:
+def git_clone_module(module_git_url: str) -> tuple[TemporaryDirectory[str], str]:
     url, rev, _user_pass = git_get_url_rev_and_auth(f"git+{module_git_url}")
     name = url.split("/")[-1].split(".")[0]
     alias_name = name
@@ -146,7 +149,7 @@ def git_clone_module(module_git_url: str) -> None:
     # try:
     #     import_from_disk(str(import_path))
     #     logger.info(
-    #         f"Imported module {name}{'' if not alias_name else ' at ' + alias_name} from {url} at revision {ref} ({commit})"
+    #         f"Imported module {name} from {url} at revision {ref} ({commit})"
     #     )
     # except ModuleNotFoundError as error:
     #     raise ModuleNotFoundError(f"Could not import {module_git_url}: {error}") from error
@@ -185,8 +188,7 @@ def replace_alias_name(name: str, cloned_gits: dict[str, TemporaryDirectory]) ->
         path_prefix = Path(cloned_gits[alias_name].name)
     except KeyError as exc:
         raise BadParameter(f"There is no cloned git for the alias name {alias_name}") from exc
-    name = path_prefix.joinpath(name)
-    return str(name)
+    return str(path_prefix.joinpath(name))
 
 
 @click.group()
@@ -202,12 +204,12 @@ def replace_alias_name(name: str, cloned_gits: dict[str, TemporaryDirectory]) ->
 @click.pass_context
 def cli(
     ctx: Any,
-    config_paths: tuple[Path],
-    config_dirs: tuple[Path],
-    yaml_strings: tuple[str],
-    install_packages: tuple[str],
-    import_modules: tuple[str],
-    git_clones: tuple[str],
+    config_paths: tuple[Path, ...] | list[Path],
+    config_dirs: tuple[Path, ...] | list[Path],
+    yaml_strings: tuple[str, ...] | list[str],
+    install_packages: tuple[str, ...] | list[str],
+    import_modules: tuple[str, ...] | list[str],
+    git_clones: tuple[str, ...] | list[str],
     verbose: int,
     quiet: int,
     global_log_level: int,

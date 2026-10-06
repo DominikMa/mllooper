@@ -10,6 +10,6 @@ run_check() {
 
 run_check ruff check src/ tests/
 run_check ruff format --check src/ tests/
-run_check ty check src/
-run_check pyright src/
+run_check ty check src/ tests/typecheck/
+run_check pyright src/ tests/typecheck/
 run_check pytest -q

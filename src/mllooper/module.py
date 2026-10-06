@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 from typing import Any
 
 from pydantic import ConfigDict
+from typing_extensions import TypeVar
 from yaloader import YAMLBaseConfig, loads
 
 from mllooper import State
@@ -21,7 +22,7 @@ class StopRun(Exception):
     pass
 
 
-class Module(ABC):
+class Module(ABC):  # noqa: B024 - Lifecycle hooks have optional no-op defaults.
     def __init__(
         self, name: str | None = None, log_level: int = logging.DEBUG, log_time_delta: timedelta = timedelta(seconds=10)
     ) -> None:
@@ -39,7 +40,7 @@ class Module(ABC):
             )
         self.logger.setLevel(self.log_level)
 
-    def initialise(self, modules: dict[str, Module]) -> None:
+    def initialise(self, modules: dict[str, Module]) -> None:  # noqa: B027
         """Perform initialization steps of the module.
 
         This might be needed to preform initialization steps that rely on other modules.
@@ -55,7 +56,7 @@ class Module(ABC):
         """
         pass
 
-    def teardown(self, state: State) -> None:
+    def teardown(self, state: State) -> None:  # noqa: B027
         """Perform teardown steps of the module.
 
         After calling no more calls to :meth:`mllooper.module.Module.step` should be made.
@@ -65,7 +66,7 @@ class Module(ABC):
         """
         pass
 
-    def step(self, state: State) -> None:
+    def step(self, state: State) -> None:  # noqa: B027
         """Perform a step of the module on the state.
 
         :param State state: The current state
@@ -124,7 +125,7 @@ class Module(ABC):
         self.logger = logging.getLogger(self.name)
         self.logger.setLevel(self.log_level)
 
-    def step_callback(self, state: State) -> None:
+    def step_callback(self, state: State) -> None:  # noqa: B027
         """Callback which should be called after a single step of all modules.
 
         :param State state: The current state
@@ -146,7 +147,7 @@ class Module(ABC):
         self._log(state)
         return True
 
-    def _log(self, state: State) -> None:
+    def _log(self, state: State) -> None:  # noqa: B027
         """Log information from the module.
 
         The state should not be changed while logging.
@@ -161,8 +162,11 @@ def _remove_tile(schema: dict[str, Any]) -> None:
         prop.pop("title", None)
 
 
+_Module = TypeVar("_Module", bound=Module, default=Any)
+
+
 @loads(None)
-class ModuleConfig(YAMLBaseConfig, ABC):
+class ModuleConfig(YAMLBaseConfig[_Module], ABC):
     model_config = ConfigDict(json_schema_extra=_remove_tile)
 
     name: str | None = None
@@ -196,8 +200,11 @@ class SeededModule(Module, ABC):
         self.random.setstate(random_state)
 
 
+_SeededModule = TypeVar("_SeededModule", bound=SeededModule, default=SeededModule)
+
+
 @loads(None)
-class SeededModuleConfig(ModuleConfig, ABC):
+class SeededModuleConfig(ModuleConfig[_SeededModule], ABC):
     seed: int | None = None
 
 
@@ -213,7 +220,7 @@ class NOP(Module):
 
 
 @loads(NOP)
-class NOPConfig(ModuleConfig):
+class NOPConfig(ModuleConfig[NOP]):
     pass
 
 
@@ -270,9 +277,11 @@ class ModuleList(Module):
 
         :param State state: The current state
         """
-        super().log(state)
+        logged = super().log(state)
         for module in self.modules:
             module.log(state)
+
+        return logged
 
     def state_dict(self) -> dict[str, Any]:
         state_dict = super().state_dict()
@@ -300,10 +309,13 @@ class ModuleList(Module):
 
 
 @loads(ModuleList)
-class ModuleListConfig(ModuleConfig):
+class ModuleListConfig(ModuleConfig[ModuleList]):
     modules: list[ModuleConfig]
 
-    def load(self, *args: Any, **kwargs: Any) -> Any:
+    def load(self, *args: Any, **kwargs: Any) -> ModuleList:
+        if self._loaded_class is None:
+            raise RuntimeError(f"{type(self).__name__} has no registered constructor.")
+
         config_data = dict(self)
         config_data["modules"] = [module_config.load() for module_config in config_data["modules"]]
         return self._loaded_class(**config_data)

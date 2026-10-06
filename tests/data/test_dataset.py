@@ -4,47 +4,34 @@ from torch.utils.data.dataloader import _BaseDataLoaderIter
 
 from mllooper.data import DataLoaderArgs, Dataset
 
-# class TestDataset(Dataset):
-#
-#     def __getitem__(self, index: int):
-#         return {'index': index}
-#
-#     def __len__(self):
-#         return 100
 
-
-@pytest.fixture
-def abstract_dataset_class(monkeypatch):
-    monkeypatch.setattr(Dataset, "__abstractmethods__", set())
-    return Dataset
-
-
-@pytest.fixture
-def constant_dataset_class(abstract_dataset_class, monkeypatch):
-
+# Importable classes also work with spawn/forkserver worker processes.
+class ConstantDataset(Dataset):
     def __getitem__(self, index: int):
         return 0
 
     def __len__(self):
         return 100
 
-    monkeypatch.setattr(abstract_dataset_class, "__getitem__", __getitem__)
-    monkeypatch.setattr(abstract_dataset_class, "__len__", __len__)
-    return abstract_dataset_class
 
-
-@pytest.fixture
-def return_index_dataset_class(abstract_dataset_class, monkeypatch):
-
+class IndexDataset(ConstantDataset):
     def __getitem__(self, index: int):
         return index
 
-    def __len__(self):
-        return 100
 
-    monkeypatch.setattr(abstract_dataset_class, "__getitem__", __getitem__)
-    monkeypatch.setattr(abstract_dataset_class, "__len__", __len__)
-    return abstract_dataset_class
+@pytest.fixture
+def abstract_dataset_class():
+    return ConstantDataset
+
+
+@pytest.fixture
+def constant_dataset_class():
+    return ConstantDataset
+
+
+@pytest.fixture
+def return_index_dataset_class():
+    return IndexDataset
 
 
 def test_initialise_torch_data_loader(abstract_dataset_class):

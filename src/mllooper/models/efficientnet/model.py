@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from functools import partial
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
 import torchvision
 from torch import nn
@@ -25,15 +25,18 @@ def efficientnet_model(
     model: TorchEfficientNet = model_cunstructor(weights=None, progress=False, num_classes=num_classes, **kwargs)
 
     if in_channels != 3:
-        original_layer: nn.Conv2d = model.features[0][0]
+        stem = model.features[0]
+        assert isinstance(stem, nn.Sequential)
+        original_layer = stem[0]
+        assert isinstance(original_layer, nn.Conv2d)
 
         input_layer = nn.Conv2d(
             in_channels,
             original_layer.out_channels,
-            kernel_size=original_layer.kernel_size,
-            stride=original_layer.stride,
-            padding=original_layer.padding,
-            dilation=original_layer.dilation,
+            kernel_size=cast("tuple[int, int]", original_layer.kernel_size),
+            stride=cast("tuple[int, int]", original_layer.stride),
+            padding=cast("str | tuple[int, int]", original_layer.padding),
+            dilation=cast("tuple[int, int]", original_layer.dilation),
             groups=original_layer.groups,
             bias=original_layer.bias is not None,
         )
@@ -41,7 +44,7 @@ def efficientnet_model(
         if input_layer.bias is not None:
             nn.init.zeros_(input_layer.bias)
 
-        model.features[0][0] = input_layer
+        stem[0] = input_layer
 
     if pretrained:
         state_dict = weights.get_state_dict(progress=progress)
@@ -96,7 +99,7 @@ class EfficientNet(Model):
 
 
 @loads(EfficientNet)
-class EfficientNetConfig(ModelConfig):
+class EfficientNetConfig(ModelConfig[EfficientNet]):
     name: str = "EfficientNet"
     model: Literal["b0", "b1"]
     pretrained: bool = False

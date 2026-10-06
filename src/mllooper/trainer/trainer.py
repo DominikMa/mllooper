@@ -8,13 +8,13 @@ from yaloader import loads
 
 from mllooper import Module, ModuleConfig, State
 from mllooper.models import Model
+from mllooper.trainer.optimizer import OptimizerConfig
 
 if TYPE_CHECKING:
     from torch.optim import Optimizer
 
     from mllooper.data import DatasetState
     from mllooper.metrics import MetricState
-    from mllooper.trainer.optimizer import OptimizerConfig
 
 
 class Trainer(Module):
@@ -79,10 +79,14 @@ class Trainer(Module):
         dataset_state: DatasetState = getattr(state, self.state_name_dataset)
 
         if dataset_state.train:
+            assert self.optimizer is not None
             loss_state: MetricState = getattr(state, self.state_name_loss)
-            loss: torch.Tensor = loss_state.output
+            loss = loss_state.output
+            if not isinstance(loss, torch.Tensor):
+                raise ValueError("Trainer requires a tensor loss.")
 
             if self.enable_grad_scaler:
+                assert self.grad_scaler is not None
                 self.grad_scaler.scale(loss).backward()
                 self.grad_scaler.step(self.optimizer)
                 self.grad_scaler.update()
@@ -95,11 +99,12 @@ class Trainer(Module):
 
     def step_callback(self, state: State) -> None:
         if not self.zero_grad_at_end_of_step:
+            assert self.optimizer is not None
             self.optimizer.zero_grad(set_to_none=True)
 
 
 @loads(Trainer)
-class TrainerConfig(ModuleConfig):
+class TrainerConfig(ModuleConfig[Trainer]):
     optimizer: OptimizerConfig
     zero_grad_at_end_of_step: bool = False
     enable_cudnn_auto_tuner: bool = True
@@ -140,5 +145,5 @@ class PrecisionAutoCast(Module):
 
 
 @loads(PrecisionAutoCast)
-class PrecisionAutoCastConfig(ModuleConfig):
+class PrecisionAutoCastConfig(ModuleConfig[PrecisionAutoCast]):
     device_type: Literal["cuda", "cpu", "xpu"]

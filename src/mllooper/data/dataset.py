@@ -1,27 +1,28 @@
 from __future__ import annotations
 
 from abc import ABC
-from collections.abc import Iterator
 from dataclasses import dataclass
 from hashlib import blake2b
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Annotated, Any
 
 import torch
-from pydantic import BaseModel, Field, confloat
+from pydantic import BaseModel, Field
 from torch.utils.data import DataLoader as TorchDataLoader
+from torch.utils.data import Dataset as TorchDataset
 from torch.utils.data import IterableDataset as TorchIterableDataset
+from typing_extensions import TypeVar
 from yaloader import YAMLBaseConfig, loads
 
 from mllooper import SeededModule, SeededModuleConfig, State
 
 if TYPE_CHECKING:
-    from torch.utils.data.dataloader import _BaseDataLoaderIter
+    from collections.abc import Iterator
 
 _LOGGED_NON_TENSOR_TYPES_GPU = set()
 
 
 @loads(None)
-class DataLoaderArgs(YAMLBaseConfig):
+class DataLoaderArgs(YAMLBaseConfig["DataLoaderArgs"]):
     _yaml_tag = "!DataLoaderArgs"
 
     batch_size: int | None = 1
@@ -33,7 +34,7 @@ class DataLoaderArgs(YAMLBaseConfig):
     prefetch_factor: int | None = None
     persistent_workers: bool = False
 
-    def load(self, *args: Any, **kwargs: Any) -> Any:
+    def load(self, *args: Any, **kwargs: Any) -> DataLoaderArgs:
         return DataLoaderArgs(**dict(self))
 
 
@@ -49,7 +50,7 @@ class DatasetState(State):
     data: Any | None = None
 
 
-class Dataset(SeededModule, ABC):
+class Dataset(SeededModule, TorchDataset[Any], ABC):
     def __init__(
         self,
         train: bool = True,
@@ -71,12 +72,12 @@ class Dataset(SeededModule, ABC):
         self.data_loader_args = data_loader_args if data_loader_args is not None else DataLoaderArgs()
 
         self._data_loader = None
-        self._data_iterator: _BaseDataLoaderIter | None = None
+        self._data_iterator: Iterator[Any] | None = None
 
         self.state = DatasetState(name=self.name, train=train, type=self.type)
         self.state_name_dataset: str = state_name_dataset
 
-    def __getitem__(self, index: int) -> None:
+    def __getitem__(self, index: int) -> Any:
         raise NotImplementedError
 
     def __len__(self) -> int:
@@ -94,6 +95,7 @@ class Dataset(SeededModule, ABC):
 
     def step(self, state: State) -> None:
         self.initialise_torch_data_loader()
+        assert self._data_iterator is not None
 
         self.state.data = None
         try:
@@ -110,6 +112,7 @@ class Dataset(SeededModule, ABC):
                 del self._data_loader
                 self._data_loader = None
                 self.reinitialise_torch_data_loader()
+                assert self._data_iterator is not None
 
                 try:
                     data = next(self._data_iterator)
@@ -164,9 +167,11 @@ class Dataset(SeededModule, ABC):
             raise ValueError(f"Expected a tensor or a dict of tensors as data but got {type(data)}.")
 
     @staticmethod
-    def _worker_init_fn(x: Any) -> None:
+    def _worker_init_fn(x: int) -> None:
         worker_info = torch.utils.data.get_worker_info()
-        dataset: Dataset = worker_info.dataset
+        assert worker_info is not None
+        dataset = worker_info.dataset
+        assert isinstance(dataset, Dataset)
         dataset.random.seed(dataset.random.randint(-999999, 999999) + x)
 
     def state_dict(self) -> dict[str, Any]:
@@ -198,8 +203,11 @@ class Dataset(SeededModule, ABC):
         self.state = state
 
 
+_Dataset = TypeVar("_Dataset", bound=Dataset, default=Any)
+
+
 @loads(None)
-class DatasetConfig(SeededModuleConfig, ABC):
+class DatasetConfig(SeededModuleConfig[_Dataset], ABC):
     train: bool = True
     data_loader_args: DataLoaderArgs = Field(default_factory=DataLoaderArgs)
     dataset_type: str | None = None
@@ -208,7 +216,7 @@ class DatasetConfig(SeededModuleConfig, ABC):
 
 
 class IterableDataset(TorchIterableDataset, Dataset, ABC):
-    def __getitem__(self, index: int) -> None:
+    def __getitem__(self, index: int) -> Any:
         raise NotImplementedError
 
     def __len__(self) -> int:
@@ -217,13 +225,13 @@ class IterableDataset(TorchIterableDataset, Dataset, ABC):
     def __iter__(self) -> Iterator[Any]:
         return self
 
-    def __next__(self) -> None:
+    def __next__(self) -> Any:
         raise NotImplementedError
 
 
 class DatasetPartition(BaseModel):
-    size: confloat(ge=0.0, le=1.0)
-    start: confloat(ge=0.0, le=1.0) | None = None
+    size: Annotated[float, Field(ge=0.0, le=1.0)]
+    start: Annotated[float | None, Field(ge=0.0, le=1.0)] = None
 
 
 class PartitionedDataset(Dataset, ABC):
@@ -240,10 +248,10 @@ class PartitionedDataset(Dataset, ABC):
         self.partitions = partitions
 
         last_partition_end = 0.0
-        for _partition_name, partition in self.partitions.items():
-            if partition.start is None:
-                partition.start = last_partition_end
-            last_partition_end = partition.start + partition.size
+        for partition_config in self.partitions.values():
+            if partition_config.start is None:
+                partition_config.start = last_partition_end
+            last_partition_end = partition_config.start + partition_config.size
         self.ensure_non_overlapping_partitions(partitions)
 
         if not self.state.name.endswith(self.partition):
@@ -253,7 +261,10 @@ class PartitionedDataset(Dataset, ABC):
     def ensure_non_overlapping_partitions(partitions: dict[str, DatasetPartition]) -> None:
         checked_partitions: dict[str, DatasetPartition] = {}
         for partition_name, partition in partitions.items():
+            if partition.start is None:
+                raise ValueError(f"Partition {partition_name} has no start.")
             for checked_name, checked in checked_partitions.items():
+                assert checked.start is not None
                 if checked.start <= partition.start < checked.start + checked.size:
                     raise RuntimeError(f"Start of {partition_name} partition lies in {checked_name} partition.")
                 if checked.start < partition.start + partition.size < checked.start + checked.size:
@@ -270,6 +281,7 @@ class PartitionedDataset(Dataset, ABC):
         if representation < 0 or representation > 1:
             raise ValueError("Value for the representation must be in the interval [0, 1].")
         for partition_name, partition in self.partitions.items():
+            assert partition.start is not None
             if partition.start <= representation < partition.start + partition.size:
                 return partition_name
         return None
@@ -301,7 +313,10 @@ class PartitionedDataset(Dataset, ABC):
         }
 
 
+_PartitionedDataset = TypeVar("_PartitionedDataset", bound=PartitionedDataset, default=PartitionedDataset)
+
+
 @loads(None)
-class PartitionedDatasetConfig(DatasetConfig, ABC):
+class PartitionedDatasetConfig(DatasetConfig[_PartitionedDataset], ABC):
     partition: str
     partitions: dict[str, DatasetPartition]

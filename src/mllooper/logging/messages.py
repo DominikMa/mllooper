@@ -5,11 +5,11 @@ from typing import TYPE_CHECKING, Any, Literal
 
 import numpy as np
 import torch
+from matplotlib.figure import Figure
 from pydantic import BaseModel, field_validator
 from torch import nn
 
 if TYPE_CHECKING:
-    from matplotlib import pyplot as plt
     from pydantic_core.core_schema import FieldValidationInfo
 
 
@@ -76,7 +76,7 @@ class ImageLogMessage(TensorBoardLogMessage):
 class FigureLogMessage(TensorBoardLogMessage):
     """Log message for a matplotlib figure"""
 
-    figure: plt.Figure
+    figure: Figure
 
     class Config:
         """Allow arbitrary types because `matplotlib.pyplot.Figure` can not be checked"""
@@ -108,7 +108,7 @@ class EmbeddingsLogMessage(TensorBoardLogMessage):
 
     embeddings: np.ndarray
     metadata: list[Any] | None = None
-    label_img: torch.Tensor = None
+    label_img: torch.Tensor | None = None
     metadata_header: list[str] | None = None
 
     class Config:
@@ -155,6 +155,8 @@ class PointCloudLogMessage(TensorBoardLogMessage):
             raise ValueError("colors array has to be of shape [N, 3]")
 
         points = info.data.get("points")
+        if points is None:
+            return colors
         if shape != points.shape:
             raise ValueError("colors array and points array have to be of the same shape")
 

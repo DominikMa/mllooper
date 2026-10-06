@@ -19,8 +19,10 @@ class CrossEntropyLoss(ScalarMetric):
         self.loss_function = torch.nn.CrossEntropyLoss(weight=None, reduction=self.reduction)
 
     def calculate_metric(self, state: State) -> torch.Tensor:
-        dataset_state: DatasetState = getattr(state, self.state_name_dataset)
-        model_state: ModelState = getattr(state, self.state_name_model)
+        dataset_state: DatasetState = self._get_state(state, self.state_name_dataset)
+        model_state: ModelState = self._get_state(state, self.state_name_model)
+        if dataset_state.data is None or model_state.output is None:
+            raise ValueError("Metric requires dataset data and model output.")
 
         if "class_id" not in dataset_state.data:
             raise ValueError(
@@ -36,7 +38,7 @@ class CrossEntropyLoss(ScalarMetric):
 
 
 @loads(CrossEntropyLoss)
-class CrossEntropyLossConfig(ScalarMetricConfig):
+class CrossEntropyLossConfig(ScalarMetricConfig[CrossEntropyLoss]):
     name: str = "CrossEntropyLoss"
 
 
@@ -46,8 +48,10 @@ class MSELoss(ScalarMetric):
         self.loss_function = torch.nn.MSELoss(reduction=self.reduction)
 
     def calculate_metric(self, state: State) -> torch.Tensor:
-        dataset_state: DatasetState = getattr(state, self.state_name_dataset)
-        model_state: ModelState = getattr(state, self.state_name_model)
+        dataset_state: DatasetState = self._get_state(state, self.state_name_dataset)
+        model_state: ModelState = self._get_state(state, self.state_name_model)
+        if dataset_state.data is None or model_state.output is None:
+            raise ValueError("Metric requires dataset data and model output.")
 
         if "target" not in dataset_state.data:
             raise ValueError(
@@ -63,7 +67,7 @@ class MSELoss(ScalarMetric):
 
 
 @loads(MSELoss)
-class MSELossConfig(ScalarMetricConfig):
+class MSELossConfig(ScalarMetricConfig[MSELoss]):
     name: str = "MSELoss"
 
 
@@ -73,8 +77,10 @@ class MAELoss(ScalarMetric):
         self.loss_function = torch.nn.L1Loss(reduction=self.reduction)
 
     def calculate_metric(self, state: State) -> torch.Tensor:
-        dataset_state: DatasetState = getattr(state, self.state_name_dataset)
-        model_state: ModelState = getattr(state, self.state_name_model)
+        dataset_state: DatasetState = self._get_state(state, self.state_name_dataset)
+        model_state: ModelState = self._get_state(state, self.state_name_model)
+        if dataset_state.data is None or model_state.output is None:
+            raise ValueError("Metric requires dataset data and model output.")
 
         if "target" not in dataset_state.data:
             raise ValueError(
@@ -90,7 +96,7 @@ class MAELoss(ScalarMetric):
 
 
 @loads(MAELoss)
-class MAELossConfig(ScalarMetricConfig):
+class MAELossConfig(ScalarMetricConfig[MAELoss]):
     name: str = "MAELoss"
 
 
@@ -106,8 +112,10 @@ class TopK(ScalarMetric):
         self.loss_function = torch.nn.CrossEntropyLoss(weight=None, reduction=self.reduction)
 
     def calculate_metric(self, state: State) -> torch.Tensor:
-        dataset_state: DatasetState = getattr(state, self.state_name_dataset)
-        model_state: ModelState = getattr(state, self.state_name_model)
+        dataset_state: DatasetState = self._get_state(state, self.state_name_dataset)
+        model_state: ModelState = self._get_state(state, self.state_name_model)
+        if dataset_state.data is None or model_state.output is None:
+            raise ValueError("Metric requires dataset data and model output.")
 
         if "class_id" not in dataset_state.data:
             raise ValueError(
@@ -125,6 +133,6 @@ class TopK(ScalarMetric):
 
 
 @loads(TopK)
-class TopKConfig(ScalarMetricConfig):
+class TopKConfig(ScalarMetricConfig[TopK]):
     name: str = "TopK"
     k: int = 1

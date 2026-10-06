@@ -15,5 +15,5 @@ class ResNet(Model):
 
 
 @loads(ResNet)
-class ResNetConfig(ModelConfig):
+class ResNetConfig(ModelConfig[ResNet]):
     pass

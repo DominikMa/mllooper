@@ -4,7 +4,6 @@ import logging
 import sys
 from datetime import datetime
 from logging import Handler, LogRecord
-from logging.handlers import BufferingHandler
 from pathlib import Path
 from typing import Any
 
@@ -12,8 +11,8 @@ import coloredlogs
 import numpy as np
 import torch
 from PIL import Image
-from pydantic import Extra
 from torch.utils.tensorboard import SummaryWriter
+from typing_extensions import TypeVar
 from yaloader import loads
 
 from mllooper import Module, ModuleConfig, State
@@ -103,7 +102,7 @@ class BufferingLogHandler(Handler):
             self.acquire()
             try:
                 self.targets = None
-                BufferingHandler.close(self)
+                super().close()
             finally:
                 self.release()
 
@@ -125,8 +124,11 @@ class LogHandler(Module):
         self.handler = None
 
 
+_LogHandler = TypeVar("_LogHandler", bound=LogHandler, default=LogHandler)
+
+
 @loads(None)
-class LogHandlerConfig(ModuleConfig):
+class LogHandlerConfig(ModuleConfig[_LogHandler]):
     pass
 
 
@@ -149,20 +151,25 @@ class FileLogBase(LogHandler):
         self.logger.info(f"Log dir: {self.log_dir}")
 
 
+_FileLog = TypeVar("_FileLog", bound=FileLogBase, default=FileLogBase)
+
+
 @loads(None)
-class FileLogBaseConfig(LogHandlerConfig, extra=Extra.allow):
+class FileLogBaseConfig(LogHandlerConfig[_FileLog], extra="allow"):
     log_dir: Path
     log_dir_exist_ok: bool = False
     create_log_dir: bool = True
 
     timestamp: datetime | None = datetime.now().replace(microsecond=0)
 
-    def load(self, *args: Any, **kwargs: Any) -> Any:
+    def load(self, *args: Any, **kwargs: Any) -> _FileLog:
         if not hasattr(self, "_loaded_class") or self._loaded_class is None:
             raise NotImplementedError
 
         all_model_field_names = {field_name for field_name in self.model_fields}
-        all_model_field_names.update({field.alias for field in self.model_fields.values()})
+        all_model_field_names.update(
+            {field.alias for field in type(self).model_fields.values() if field.alias is not None}
+        )
         extra_keys = [value for value in self.model_dump() if value not in all_model_field_names]
 
         if len(list(filter(lambda e: not e.startswith("log_postfix_"), extra_keys))):
@@ -216,8 +223,11 @@ class TextFileLog(FileLogBase):
         self.set_handler(handler)
 
 
+_TextFileLog = TypeVar("_TextFileLog", bound=TextFileLog, default=TextFileLog)
+
+
 @loads(TextFileLog)
-class TextFileLogConfig(FileLogBaseConfig):
+class TextFileLogConfig(FileLogBaseConfig[_TextFileLog]):
     level: int = logging.WARNING
 
 
@@ -249,8 +259,11 @@ class ConsoleLog(LogHandler):
         pass
 
 
+_ConsoleLog = TypeVar("_ConsoleLog", bound=ConsoleLog, default=ConsoleLog)
+
+
 @loads(ConsoleLog)
-class ConsoleLogConfig(LogHandlerConfig):
+class ConsoleLogConfig(LogHandlerConfig[_ConsoleLog]):
     level: int = logging.WARNING
 
 
@@ -399,7 +412,7 @@ class TensorBoardLog(FileLogBase):
 
 
 @loads(TensorBoardLog)
-class TensorBoardLogConfig(FileLogBaseConfig):
+class TensorBoardLogConfig(FileLogBaseConfig[TensorBoardLog]):
     pass
 
 
@@ -411,29 +424,31 @@ class FileLog(FileLogBase):
 
 
 @loads(FileLog)
-class FileLogConfig(FileLogBaseConfig):
+class FileLogConfig(FileLogBaseConfig[FileLog]):
     pass
 
 
 class MLTextFileLog(TextFileLog):
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
+        assert self.handler is not None
         self.handler.addFilter(TensorBoardLogFilter())
 
 
 @loads(MLTextFileLog, overwrite_tag=True)
-class MLTextFileLogConfig(TextFileLogConfig):
+class MLTextFileLogConfig(TextFileLogConfig[MLTextFileLog]):
     _yaml_tag = "!TextFileLog"
 
 
 class MLConsoleLog(ConsoleLog):
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(**kwargs)
+        assert self.handler is not None
         self.handler.addFilter(TensorBoardLogFilter())
 
 
 @loads(MLConsoleLog, overwrite_tag=True)
-class MLConsoleLogConfig(ConsoleLogConfig):
+class MLConsoleLogConfig(ConsoleLogConfig[MLConsoleLog]):
     _yaml_tag = "!ConsoleLog"
 
 

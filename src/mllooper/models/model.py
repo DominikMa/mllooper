@@ -4,11 +4,12 @@ import os
 from abc import ABC
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Any, Literal, cast
 
 import torch
 import torch.distributed as distributed
 from torch import nn
+from typing_extensions import TypeVar
 from yaloader import loads
 
 from mllooper import Module, ModuleConfig, SeededModule, SeededModuleConfig, State
@@ -52,12 +53,14 @@ class Model(SeededModule, ABC):
             if len(devices) > 1:
                 raise RuntimeError("To use multiple devices for the model data_parallel needs to be set to DP or DDP.")
         elif data_parallel == "DP":
-            self._parallel_module = nn.DataParallel(self.module, device_ids=self.devices, output_device=output_device)
+            self._parallel_module = nn.DataParallel(
+                self.module, device_ids=self.devices, output_device=self.output_device
+            )
         elif data_parallel == "DDP":
             self._parallel_module = nn.parallel.DistributedDataParallel(
                 self.module,
                 device_ids=self.devices,
-                output_device=output_device,
+                output_device=self.output_device,
                 find_unused_parameters=ddp_find_unused_parameters,
             )
         else:
@@ -66,9 +69,9 @@ class Model(SeededModule, ABC):
         self._compiled_module: nn.Module | None = None
         if self.compile_model:
             if self._parallel_module is not None:
-                self._compiled_module = torch.compile(self._parallel_module)
+                self._compiled_module = cast("nn.Module", torch.compile(self._parallel_module))
             else:
-                self._compiled_module = torch.compile(self.module)
+                self._compiled_module = cast("nn.Module", torch.compile(self.module))
 
         self.state_name_dataset: str = state_name_dataset
         self.state_name_model: str = state_name_model
@@ -158,8 +161,11 @@ class Model(SeededModule, ABC):
         self.state = state
 
 
+_Model = TypeVar("_Model", bound=Model, default=Model)
+
+
 @loads(None)
-class ModelConfig(SeededModuleConfig):
+class ModelConfig(SeededModuleConfig[_Model]):
     module_load_file: Path | None = None
     device: str | list[str] = "cpu"
     output_device: str | None = None
@@ -178,7 +184,7 @@ class IdentityModel(Model):
 
 
 @loads(IdentityModel)
-class IdentityModelConfig(ModelConfig):
+class IdentityModelConfig(ModelConfig[IdentityModel]):
     pass
 
 
@@ -215,7 +221,7 @@ class DDPSetup(Module):
 
 
 @loads(DDPSetup)
-class DDPSetupConfig(ModuleConfig):
+class DDPSetupConfig(ModuleConfig[DDPSetup]):
     name: str = "DDPSetup"
     backend: str | None = None
     rank: int
