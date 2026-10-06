@@ -1,19 +1,23 @@
+from __future__ import annotations
+
 from io import BytesIO, StringIO
-from typing import Optional, Dict, Any, Tuple, Literal, List
+from typing import TYPE_CHECKING, Any, Literal
 
 import numpy as np
 import torch
-from matplotlib import pyplot as plt
-from pydantic import validator, BaseModel, field_validator
-from pydantic_core.core_schema import FieldValidationInfo
+from matplotlib.figure import Figure
+from pydantic import BaseModel, field_validator
 from torch import nn
+
+if TYPE_CHECKING:
+    from pydantic_core.core_schema import FieldValidationInfo
 
 
 class TensorBoardLogMessage(BaseModel):
-    tag: Optional[str] = None
-    step: Optional[int] = None
+    tag: str | None = None
+    step: int | None = None
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.__repr__()
 
 
@@ -26,7 +30,7 @@ class TextLogMessage(TensorBoardLogMessage):
     text: str
 
     @property
-    def formatted_text(self):
+    def formatted_text(self) -> str:
         text = self.text
         if not self.markdown:
             if not self.text.startswith("<pre>"):
@@ -56,7 +60,7 @@ class ImageLogMessage(TensorBoardLogMessage):
 
     # noinspection PyArgumentList
     @field_validator("image")
-    def validate_image_data(cls, image: np.ndarray, info: FieldValidationInfo):
+    def validate_image_data(cls, image: np.ndarray, info: FieldValidationInfo) -> Any:
         """Validate that image data is between 0 and 255 and as `np.uin8`"""
         ignore_img_data = info.data.get("ignore_img_data", False)
         if not ignore_img_data:
@@ -72,7 +76,7 @@ class ImageLogMessage(TensorBoardLogMessage):
 class FigureLogMessage(TensorBoardLogMessage):
     """Log message for a matplotlib figure"""
 
-    figure: plt.Figure
+    figure: Figure
 
     class Config:
         """Allow arbitrary types because `matplotlib.pyplot.Figure` can not be checked"""
@@ -91,7 +95,7 @@ class HistogramLogMessage(TensorBoardLogMessage):
         arbitrary_types_allowed = True
 
     @field_validator("array")
-    def validate_points_data(cls, array: np.ndarray):
+    def validate_points_data(cls, array: np.ndarray) -> Any:
         """Validate that points data is in shape [N, 3]"""
         shape = array.shape
         if len(shape) != 1:
@@ -103,9 +107,9 @@ class EmbeddingsLogMessage(TensorBoardLogMessage):
     """Log message for a histogram"""
 
     embeddings: np.ndarray
-    metadata: Optional[List[Any]] = None
-    label_img: torch.Tensor = None
-    metadata_header: Optional[List[str]] = None
+    metadata: list[Any] | None = None
+    label_img: torch.Tensor | None = None
+    metadata_header: list[str] | None = None
 
     class Config:
         """Allow arbitrary types because `np.array` can not be checked"""
@@ -113,7 +117,7 @@ class EmbeddingsLogMessage(TensorBoardLogMessage):
         arbitrary_types_allowed = True
 
     @field_validator("embeddings")
-    def validate_embeddings_data(cls, array: np.ndarray):
+    def validate_embeddings_data(cls, array: np.ndarray) -> Any:
         """Validate that points data is in shape [N, M]"""
         shape = array.shape
         if len(shape) != 2:
@@ -123,7 +127,7 @@ class EmbeddingsLogMessage(TensorBoardLogMessage):
 
 class PointCloudLogMessage(TensorBoardLogMessage):
     points: torch.Tensor
-    colors: Optional[torch.Tensor]
+    colors: torch.Tensor | None
 
     class Config:
         """Allow arbitrary types because `torch.Tensor` can not be checked"""
@@ -131,7 +135,7 @@ class PointCloudLogMessage(TensorBoardLogMessage):
         arbitrary_types_allowed = True
 
     @field_validator("points")
-    def validate_points_data(cls, points: torch.Tensor):
+    def validate_points_data(cls, points: torch.Tensor) -> Any:
         """Validate that points data is in shape [N, 3]"""
         shape = points.shape
         if len(shape) != 2 or shape[1] != 3:
@@ -139,9 +143,7 @@ class PointCloudLogMessage(TensorBoardLogMessage):
         return points
 
     @field_validator("colors")
-    def validate_colors_data(
-        cls, colors: Optional[torch.Tensor], info: FieldValidationInfo
-    ):
+    def validate_colors_data(cls, colors: torch.Tensor | None, info: FieldValidationInfo) -> Any:
         """Validate that colors data is in shape [N, 3], shame shape as points
         and data is between 0 and 255 and as `np.uin8`
         """
@@ -153,19 +155,17 @@ class PointCloudLogMessage(TensorBoardLogMessage):
             raise ValueError("colors array has to be of shape [N, 3]")
 
         points = info.data.get("points")
+        if points is None:
+            return colors
         if shape != points.shape:
-            raise ValueError(
-                "colors array and points array have to be of the same shape"
-            )
+            raise ValueError("colors array and points array have to be of the same shape")
 
         if colors.max() > 255:
             raise ValueError("colors contains values over 255")
         if colors.min() < 0:
             raise ValueError("colors contains values below 0")
         if colors.dtype != torch.uint8:
-            raise ValueError(
-                "Type of colors has to be torch.uint8 (use my_tensor.to(dtype=torch.uint8))"
-            )
+            raise ValueError("Type of colors has to be torch.uint8 (use my_tensor.to(dtype=torch.uint8))")
         return colors
 
 
@@ -183,13 +183,13 @@ class ModelGraphLogMessage(TensorBoardLogMessage):
 
 
 class TensorBoardAddCustomScalarsLogMessage(BaseModel):
-    layout: Dict[str, Dict[str, Tuple[Literal["Multiline", "Margin"], List[str]]]]
+    layout: dict[str, dict[str, tuple[Literal["Multiline", "Margin"], list[str]]]]
 
 
 class ModelLogMessage(BaseModel):
     """Log message for a model"""
 
-    step: Optional[int] = None
+    step: int | None = None
     name: str
     model: nn.Module
 
@@ -198,14 +198,14 @@ class ModelLogMessage(BaseModel):
 
         arbitrary_types_allowed = True
 
-    def __str__(self):
+    def __str__(self) -> str:
         msg = f"Logged model {self.name}"
         if self.step:
             msg = f"{msg} at step {self.step}"
         return msg
 
-    def __repr__(self):
-        return f"{self.__class__.__name__}({str(self)})"
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}({self!s})"
 
 
 class ConfigLogMessage(BaseModel):
@@ -215,7 +215,7 @@ class ConfigLogMessage(BaseModel):
     config: str
 
     @property
-    def formatted_text(self):
+    def formatted_text(self) -> str:
         text = self.config
         if not text.startswith("<pre>"):
             text = f"<pre>{text}"
@@ -223,18 +223,18 @@ class ConfigLogMessage(BaseModel):
             text = f"{text}</pre>"
         return text
 
-    def __str__(self):
+    def __str__(self) -> str:
         msg = f"Logged config {self.name}"
         return msg
 
-    def __repr__(self):
-        return f"{self.__class__.__name__}({str(self)})"
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}({self!s})"
 
 
 class BytesIOLogMessage(BaseModel):
     """Log message for bytes"""
 
-    step: Optional[int] = None
+    step: int | None = None
     name: str
     bytes: BytesIO
 
@@ -243,20 +243,20 @@ class BytesIOLogMessage(BaseModel):
 
         arbitrary_types_allowed = True
 
-    def __str__(self):
+    def __str__(self) -> str:
         msg = f"Logged {self.name}"
         if self.step:
             msg = f"{msg} at step {self.step}"
         return msg
 
-    def __repr__(self):
-        return f"{self.__class__.__name__}({str(self)})"
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}({self!s})"
 
 
 class StringIOLogMessage(BaseModel):
     """Log message for text"""
 
-    step: Optional[int] = None
+    step: int | None = None
     name: str
     text: StringIO
     encoding: str = "utf-8"
@@ -266,11 +266,11 @@ class StringIOLogMessage(BaseModel):
 
         arbitrary_types_allowed = True
 
-    def __str__(self):
+    def __str__(self) -> str:
         msg = f"Logged {self.name}"
         if self.step:
             msg = f"{msg} at step {self.step}"
         return msg
 
-    def __repr__(self):
-        return f"{self.__class__.__name__}({str(self)})"
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}({self!s})"

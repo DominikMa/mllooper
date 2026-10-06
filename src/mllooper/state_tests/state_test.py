@@ -1,14 +1,18 @@
+from __future__ import annotations
+
 import logging
 from abc import ABC
-from typing import Optional
+from typing import TYPE_CHECKING, Any
 
+from typing_extensions import TypeVar
 from yaloader import YAMLBaseConfig, loads
 
-from mllooper import State
+if TYPE_CHECKING:
+    from mllooper import State
 
 
-class StateTest(ABC):
-    def __init__(self, name: Optional[str] = None):
+class StateTest(ABC):  # noqa: B024 - Base predicate raises until overridden.
+    def __init__(self, name: str | None = None) -> None:
         self.name = name
         self.logger = logging.getLogger(self.name)
 
@@ -16,7 +20,9 @@ class StateTest(ABC):
         raise NotImplementedError
 
 
-@loads(None)
-class StateTestConfig(YAMLBaseConfig, ABC):
-    name: Optional[str] = None
+_StateTest = TypeVar("_StateTest", bound=StateTest, default=Any)
 
+
+@loads(None)
+class StateTestConfig(YAMLBaseConfig[_StateTest], ABC):
+    name: str | None = None

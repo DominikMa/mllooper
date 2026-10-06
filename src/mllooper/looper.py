@@ -1,16 +1,22 @@
+from __future__ import annotations
+
 import datetime
 from dataclasses import dataclass
-from typing import Dict, Union, Any, Optional, Tuple
+from typing import TYPE_CHECKING, Any
 
-from pydantic import Extra, field_validator, model_validator
+from pydantic import Field, field_validator, model_validator
 from yaloader import loads
 
-from mllooper import Module, State, ModuleConfig
+from mllooper import Module, State
+from mllooper.module import ModuleConfig
 from mllooper.utils import full_name
 
+if TYPE_CHECKING:
+    from collections.abc import Iterator
 
-def iterate_modules(modules: Dict[str, Union[Module, str]], skip_references: bool = False) -> Tuple[str, Module]:
-    """ Iterator over a modules dictionary which resolves references and always yields a Module.
+
+def iterate_modules(modules: dict[str, Module | str], skip_references: bool = False) -> Iterator[tuple[str, Module]]:
+    """Iterator over a modules dictionary which resolves references and always yields a Module.
 
     :param modules: A dictionary of Modules or references of Modules
     :param skip_references: If True references will not be resolved but skipped
@@ -19,7 +25,7 @@ def iterate_modules(modules: Dict[str, Union[Module, str]], skip_references: boo
         if isinstance(module, Module):
             yield key, module
         elif isinstance(module, str):
-            reference_module = modules.get(module, None)
+            reference_module = modules.get(module)
             if not reference_module:
                 raise ValueError(f"The name '{module}' is not the key of another module.")
             if not isinstance(reference_module, Module):
@@ -32,7 +38,7 @@ def iterate_modules(modules: Dict[str, Union[Module, str]], skip_references: boo
 
 @dataclass
 class LooperState(State):
-    """ A state object containing information and flags of the looper. """
+    """A state object containing information and flags of the looper."""
 
     step_iteration: int = 0
     """ Counter for the iterations in a step of the looper """
@@ -48,7 +54,7 @@ class LooperState(State):
 
 
 class Looper(Module):
-    """ A module which takes a list of other modules and loops over it.
+    """A module which takes a list of other modules and loops over it.
 
     A step on a Looper module is not a single iteration of the loop but the whole loop.
     That means a single step on a Looper is a loop that might run forever.
@@ -57,7 +63,9 @@ class Looper(Module):
     never see the state the lopper lives in.
     """
 
-    def __init__(self, modules: Dict[str, Union[Module, str]], state_name_looper: str = 'looper_state', **kwargs):
+    def __init__(
+        self, modules: dict[str, Module | str], state_name_looper: str = "looper_state", **kwargs: Any
+    ) -> None:
         super().__init__(**kwargs)
         self.modules = modules
 
@@ -66,12 +74,12 @@ class Looper(Module):
         self.inner_state: State = State()
         setattr(self.inner_state, self.state_name_looper, LooperState())
 
-        self._iterations_per_second = None
+        self._iterations_per_second: float | None = None
         self._last_log_iteration_count = 0
         self._last_log_iteration_time = datetime.datetime.now()
 
-    def initialise(self, modules: Dict[str, Module]):
-        """ Perform initialization steps of all modules in the loop.
+    def initialise(self, modules: dict[str, Module]) -> None:
+        """Perform initialization steps of all modules in the loop.
 
         Modules in the loop should not depend on modules outside the loop.
         Therefore the modules of the loop can only access other modules in the same loop.
@@ -84,7 +92,7 @@ class Looper(Module):
         #                        f"Either this module is initialised twice or an other module uses the same key.")
 
         looper_modules = {key: module for key, module in iterate_modules(self.modules, skip_references=True)}
-        for key, module in iterate_modules(self.modules):
+        for _key, module in iterate_modules(self.modules):
             module: Module
             module.initialise(looper_modules)
 
@@ -92,16 +100,16 @@ class Looper(Module):
         # Otherwise the time loading the datasets, ect. will be included in the time
         self._last_log_iteration_time = datetime.datetime.now()
 
-    def teardown(self, state: State):
-        """ Teardown all modules in the loop.
+    def teardown(self, state: State) -> None:
+        """Teardown all modules in the loop.
 
         :param State state: The final state
         """
         for _, module in iterate_modules(self.modules):
             module.teardown(self.inner_state)
 
-    def step(self, state: State):
-        """ Perform a step of the Looper on the state.
+    def step(self, state: State) -> None:
+        """Perform a step of the Looper on the state.
 
         A step on a Looper module is not a single iteration of the loop but the whole loop.
         That means a single step on a Looper might be a loop that runs forever.
@@ -109,10 +117,12 @@ class Looper(Module):
         :param State state: The current state
         """
         if hasattr(state, self.name) and getattr(state, self.name) is not self.inner_state:
-            self.logger.warning(f"There is already a field with the name {self.name} on the state "
-                                f"and it is not the state of this module. It will be overwritten."
-                                f"This can happen after loading the state or "
-                                f"when another modules writes on the same field name.")
+            self.logger.warning(
+                f"There is already a field with the name {self.name} on the state "
+                f"and it is not the state of this module. It will be overwritten."
+                f"This can happen after loading the state or "
+                f"when another modules writes on the same field name."
+            )
         # Add the inner state as module state to the outer state
         setattr(state, self.name, self.inner_state)
 
@@ -132,14 +142,14 @@ class Looper(Module):
             self.inner_step_callback(state)
             self.inner_log(state)
 
-    def inner_step_callback(self, state):
-        """ Call the callbacks of all included modules. """
+    def inner_step_callback(self, state: State) -> None:
+        """Call the callbacks of all included modules."""
         self.step_callback(state)
         for _, module in iterate_modules(self.modules, skip_references=True):
             module.step_callback(self.inner_state)
 
-    def inner_log(self, state: State):
-        """ Log information from the Looper and from all included modules.
+    def inner_log(self, state: State) -> None:
+        """Log information from the Looper and from all included modules.
 
         :param State state: The current state
         """
@@ -154,20 +164,19 @@ class Looper(Module):
 
             iterations_per_second = iterations_since_last_log / time_since_last_log.total_seconds()
 
-            try:
+            if self._iterations_per_second is not None:
                 self._iterations_per_second = self._iterations_per_second * 0.9 + iterations_per_second * 0.1
-            except TypeError:
+            else:
                 self._iterations_per_second = iterations_per_second
 
             # self.logger.info(f"Doing {self._iterations_per_second:0.2f} iterations per second")
-            self.logger.info(f"Iteration {looper_state.total_iteration} "
-                             f"({self._iterations_per_second:0.2f} it/s)")
+            self.logger.info(f"Iteration {looper_state.total_iteration} ({self._iterations_per_second:0.2f} it/s)")
 
         for _, module in iterate_modules(self.modules, skip_references=True):
             module.log(self.inner_state)
 
-    def state_dict(self) -> Dict[str, Any]:
-        state_dict = super(Looper, self).state_dict()
+    def state_dict(self) -> dict[str, Any]:
+        state_dict = super().state_dict()
 
         modules_states = {}
         for key, module in self.modules.items():
@@ -176,18 +185,20 @@ class Looper(Module):
             else:
                 modules_states[key] = module.state_dict()
 
-        state_dict.update({
-            'state': self.inner_state,
-            '_last_log_iteration_count': self._last_log_iteration_count,
-            '_last_log_iteration_time': self._last_log_iteration_time,
-            '_iterations_per_second': self._iterations_per_second,
-            'modules': modules_states,
-        })
+        state_dict.update(
+            {
+                "state": self.inner_state,
+                "_last_log_iteration_count": self._last_log_iteration_count,
+                "_last_log_iteration_time": self._last_log_iteration_time,
+                "_iterations_per_second": self._iterations_per_second,
+                "modules": modules_states,
+            }
+        )
         return state_dict
 
-    def load_state_dict(self, state_dict: Dict[str, any], strict: bool = True):
-        for key, module_state_dict in state_dict['modules'].items():
-            if key not in self.modules.keys():
+    def load_state_dict(self, state_dict: dict[str, Any], strict: bool = True) -> None:
+        for key, module_state_dict in state_dict["modules"].items():
+            if key not in self.modules:
                 if strict:
                     raise ValueError(f"The module key {key} in the given state dict does not exist.")
                 else:
@@ -196,72 +207,85 @@ class Looper(Module):
             if isinstance(module_state_dict, str):
                 self.modules[key] = module_state_dict
             else:
-                self.modules[key].load_state_dict(module_state_dict)
+                module = self.modules[key]
+                if not isinstance(module, Module):
+                    raise ValueError(f"The module key {key} refers to a reference, not a module.")
+                module.load_state_dict(module_state_dict)
 
-        self.inner_state = state_dict['state']
-        self._last_log_iteration_count = state_dict['_last_log_iteration_count']
-        self._last_log_iteration_time = state_dict['_last_log_iteration_time']
-        self._iterations_per_second = state_dict['_iterations_per_second']
+        self.inner_state = state_dict["state"]
+        self._last_log_iteration_count = state_dict["_last_log_iteration_count"]
+        self._last_log_iteration_time = state_dict["_last_log_iteration_time"]
+        self._iterations_per_second = state_dict["_iterations_per_second"]
 
-        super(Looper, self).load_state_dict(state_dict, strict)
+        super().load_state_dict(state_dict, strict)
 
 
 @loads(Looper)
-class LooperConfig(ModuleConfig, extra=Extra.allow):
-    modules: Dict[str, Union[ModuleConfig, str]] = {}
-    state_name_looper: str = 'looper_state'
+class LooperConfig(ModuleConfig[Looper], extra="allow"):
+    modules: dict[str, ModuleConfig | str] = Field(default_factory=dict)
+    state_name_looper: str = "looper_state"
 
-    def load(self, *args, **kwargs):
-        all_model_field_names = {field_name for field_name in self.model_fields.keys()}
-        all_model_field_names.update({field.alias for field in self.model_fields.values()})
+    def load(self, *args: Any, **kwargs: Any) -> Looper:
+        if self._loaded_class is None:
+            raise RuntimeError(f"{type(self).__name__} has no registered constructor.")
+
+        all_model_field_names = {field_name for field_name in self.model_fields}
+        all_model_field_names.update(
+            {field.alias for field in type(self).model_fields.values() if field.alias is not None}
+        )
         extra_keys = [value for value in self.model_dump() if value not in all_model_field_names]
 
-        modules: Dict[str, Union[ModuleConfig, str]] = self.modules
+        modules: dict[str, ModuleConfig | str] = self.modules
 
         for extra_key in extra_keys:
             if extra_key in modules:
-                raise ValueError(f"The name {extra_key} is used in the modules dictionary and in the extra keys. "
-                                 f"It can not be used in both.")
+                raise ValueError(
+                    f"The name {extra_key} is used in the modules dictionary and in the extra keys. "
+                    f"It can not be used in both."
+                )
             modules[extra_key] = getattr(self, extra_key)
             delattr(self, extra_key)
 
         config_data = dict(self)
-        modules: Dict[str, Union[ModuleConfig, str]] = config_data['modules']
+        modules: dict[str, ModuleConfig | str] = config_data["modules"]
         loaded_modules = {}
         for key, module_config in modules.items():
             if isinstance(module_config, str):
                 loaded_modules[key] = module_config
             else:
                 loaded_modules[key] = module_config.load()
-        config_data['modules'] = loaded_modules
+        config_data["modules"] = loaded_modules
 
-        if len(config_data['modules']) > 0:
-            self.__pydantic_fields_set__.add('modules')
+        if len(config_data["modules"]) > 0:
+            self.__pydantic_fields_set__.add("modules")
 
         return self._loaded_class(**config_data)
 
-    @model_validator(mode='before')
-    def put_extra_in_modules(cls, values: Dict[str, Any]) -> Dict[str, Any]:
-        all_model_field_names = {field_name for field_name in cls.model_fields.keys()}
-        all_model_field_names.update({field.alias for field in cls.model_fields.values()})
+    @model_validator(mode="before")
+    def put_extra_in_modules(cls, values: dict[str, Any]) -> dict[str, Any]:
+        all_model_field_names = {field_name for field_name in cls.model_fields}
+        all_model_field_names.update({field.alias for field in cls.model_fields.values() if field.alias is not None})
 
         extra_keys = [value for value in values if value not in all_model_field_names]
         assert set(extra_keys) == set(values).difference(all_model_field_names)
 
-        modules: Dict[str, Union[ModuleConfig, str]] = values.get('modules', {})
+        modules: dict[str, ModuleConfig | str] = values.get("modules", {})
 
         for extra_key in extra_keys:
             if extra_key in modules:
-                raise ValueError(f"The name {extra_key} is used in the modules dictionary and in the extra keys. "
-                                 f"It can not be used in both.")
+                raise ValueError(
+                    f"The name {extra_key} is used in the modules dictionary and in the extra keys. "
+                    f"It can not be used in both."
+                )
             if not isinstance(values[extra_key], (ModuleConfig, str)):
-                raise ValueError(f"extra key can only contain str or ModuleConfig "
-                                 f"but got {type(values[extra_key])} for {extra_key}")
+                raise ValueError(
+                    f"extra key can only contain str or ModuleConfig but got {type(values[extra_key])} for {extra_key}"
+                )
 
         return values
 
-    @field_validator('modules')
-    def check_references_are_included(cls, modules):
+    @field_validator("modules")
+    def check_references_are_included(cls, modules: Any) -> Any:
         module_config_keys = {k for k, v in modules.items() if isinstance(v, ModuleConfig)}
         references = {v for k, v in modules.items() if isinstance(v, str)}
 
@@ -272,9 +296,13 @@ class LooperConfig(ModuleConfig, extra=Extra.allow):
 
 
 class LooperIterationStop(Module):
-    def __init__(self, step_iteration_limit: Optional[int] = None,
-                 total_iteration_limit: Optional[int] = None,
-                 state_name_looper: str = 'looper_state', **kwargs):
+    def __init__(
+        self,
+        step_iteration_limit: int | None = None,
+        total_iteration_limit: int | None = None,
+        state_name_looper: str = "looper_state",
+        **kwargs: Any,
+    ) -> None:
         super().__init__(**kwargs)
         self.step_iteration_limit = step_iteration_limit
         self.total_iteration_limit = total_iteration_limit
@@ -287,28 +315,28 @@ class LooperIterationStop(Module):
         if self.total_iteration_limit and looper_state.total_iteration >= self.total_iteration_limit:
             looper_state.stop_loop = True
 
-    def state_dict(self) -> Dict[str, Any]:
-        state_dict = super(LooperIterationStop, self).state_dict()
+    def state_dict(self) -> dict[str, Any]:
+        state_dict = super().state_dict()
 
         state_dict[full_name(self)] = {
-            'step_iteration_limit': self.step_iteration_limit,
-            'total_iteration_limit': self.total_iteration_limit
+            "step_iteration_limit": self.step_iteration_limit,
+            "total_iteration_limit": self.total_iteration_limit,
         }
         return state_dict
 
-    def load_state_dict(self, state_dict: Dict[str, any], strict: bool = True):
+    def load_state_dict(self, state_dict: dict[str, Any], strict: bool = True) -> None:
         name = full_name(self)
-        if name not in state_dict.keys():
+        if name not in state_dict:
             raise ValueError(f"Expected the state dict to have a key '{name}' but it has not.")
-        own_state_dict: Dict[str, Any] = state_dict.pop(name)
-        self.step_iteration_limit = own_state_dict['step_iteration_limit']
-        self.total_iteration_limit = own_state_dict['total_iteration_limit']
+        own_state_dict: dict[str, Any] = state_dict.pop(name)
+        self.step_iteration_limit = own_state_dict["step_iteration_limit"]
+        self.total_iteration_limit = own_state_dict["total_iteration_limit"]
 
-        super(LooperIterationStop, self).load_state_dict(state_dict, strict)
+        super().load_state_dict(state_dict, strict)
 
 
 @loads(LooperIterationStop)
-class LooperIterationStopConfig(ModuleConfig):
-    step_iteration_limit: Optional[int] = None
-    total_iteration_limit: Optional[int] = None
-    state_name_looper: str = 'looper_state'
+class LooperIterationStopConfig(ModuleConfig[LooperIterationStop]):
+    step_iteration_limit: int | None = None
+    total_iteration_limit: int | None = None
+    state_name_looper: str = "looper_state"

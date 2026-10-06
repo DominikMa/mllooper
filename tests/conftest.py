@@ -1,15 +1,11 @@
-from typing import Dict
-
 import pytest
 from yaloader import loads
 
-from mllooper import State, Module, ModuleConfig
+from mllooper import Module, ModuleConfig, State
 
 
 def pytest_addoption(parser):
-    parser.addoption(
-        "--runslow", action="store_true", default=False, help="run slow tests"
-    )
+    parser.addoption("--runslow", action="store_true", default=False, help="run slow tests")
 
 
 def pytest_configure(config):
@@ -42,10 +38,10 @@ def initialise_and_teardown_counter_class():
         def step(self, state: State) -> None:
             pass
 
-        def initialise(self, modules: Dict[str, 'Module']) -> None:
+        def initialise(self, modules: dict[str, "Module"]) -> None:
             self.count_initialise += 1
 
-        def teardown(self, modules: Dict[str, 'Module']) -> None:
+        def teardown(self, modules: dict[str, "Module"]) -> None:
             self.count_teardown += 1
 
     return CounterClass

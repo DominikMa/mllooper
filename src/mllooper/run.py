@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import importlib
 import json
 import logging
@@ -5,10 +7,10 @@ import re
 import subprocess
 import sys
 from importlib.metadata import distributions
-from importlib.util import spec_from_file_location, module_from_spec, find_spec
+from importlib.util import find_spec, module_from_spec, spec_from_file_location
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Tuple, Dict
+from typing import Any
 
 import click
 import git
@@ -18,115 +20,113 @@ from pydantic import ValidationError
 from yaloader import ConfigLoader, YAMLConfigDumper
 from yaml import MarkedYAMLError
 
-from mllooper import Module, ModuleConfig
+from mllooper import ModuleConfig
 from mllooper.logging.handler import BufferingLogHandler
 from mllooper.logging.messages import ConfigLogMessage
 from mllooper.utils import git_get_url_rev_and_auth
 
-TEMP_DIR = TemporaryDirectory(prefix='mllooper_tmp_')
+TEMP_DIR = TemporaryDirectory(prefix="mllooper_tmp_")
 
-logger = logging.getLogger('mllooper.cli')
+logger = logging.getLogger("mllooper.cli")
 
 
-def install_package(package_name: str):
+def install_package(package_name: str) -> None:
     try:
-        subprocess.check_call([sys.executable, '-m', 'pip', 'install', '--force-reinstall', package_name])
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "--force-reinstall", package_name])
     except subprocess.CalledProcessError as e:
-        raise RuntimeError(f"Could not install {package_name}: {e}")
+        raise RuntimeError(f"Could not install {package_name}: {e}") from e
     else:
-        logger.info(
-            f"Installed package {package_name}"
-        )
+        logger.info(f"Installed package {package_name}")
 
 
-def is_valid_module_name(module_name: str):
+def is_valid_module_name(module_name: str) -> bool:
     pattern = r"^[a-zA-Z_][a-zA-Z0-9_]*$"
-    return re.fullmatch(pattern, module_name)
+    return re.fullmatch(pattern, module_name) is not None
 
 
-def import_as_known_module(module_name: str):
+def import_as_known_module(module_name: str) -> None:
     if not is_valid_module_name(module_name):
         raise ModuleNotFoundError
     importlib.import_module(module_name)
 
 
-def import_from_disk(module_name: str):
+def import_from_disk(module_name: str) -> None:
     module_path = Path(module_name).absolute()
-    if module_path.is_file() and module_path.suffix == '.py':
+    if module_path.is_file() and module_path.suffix == ".py":
         name = module_path.parent.name
         location = module_path
-    elif module_path.is_dir() and module_path.joinpath('__init__.py').is_file():
+    elif module_path.is_dir() and module_path.joinpath("__init__.py").is_file():
         name = module_path.name
-        location = module_path.joinpath('__init__.py')
+        location = module_path.joinpath("__init__.py")
     else:
         raise ModuleNotFoundError
 
     if sys.modules.get(name, None) is not None:
-        raise RuntimeError(f'Can not import {module_name} as {name} because a module with the name {name} is already loaded.')
+        raise RuntimeError(
+            f"Can not import {module_name} as {name} because a module with the name {name} is already loaded."
+        )
 
     spec = find_spec(name)
     if spec is None:
         spec = spec_from_file_location(name, location)
 
     if spec is None:
-        raise RuntimeError(f'Can not import {module_name} as {name} from {location}.')
+        raise RuntimeError(f"Can not import {module_name} as {name} from {location}.")
     elif spec.origin != str(location):
-        raise RuntimeError(f'Can not import {module_name} as {name} from {location} because there is a spec with the same name at {spec.origin}.')
+        raise RuntimeError(
+            f"Can not import {module_name} as {name} from {location} because "
+            f"there is a spec with the same name at {spec.origin}."
+        )
 
     module = module_from_spec(spec)
     sys.modules[name] = module
+    if spec.loader is None:
+        raise ModuleNotFoundError(f"No loader available for {module_name}")
     spec.loader.exec_module(module)
     # add parent path to sys path to be able to reimport the module on multiprocessing
     sys.path.insert(0, str(module_path.parent))
 
 
-def import_module(module_name: str):
+def import_module(module_name: str) -> None:
     # try to import as a known module
     try:
         import_as_known_module(module_name)
     except ModuleNotFoundError as error:
-        if hasattr(error, 'name') and error.name is not None and error.name != module_name:
+        if hasattr(error, "name") and error.name is not None and error.name != module_name:
             raise
     else:
-        logger.info(
-            f"Imported module {module_name}"
-        )
+        logger.info(f"Imported module {module_name}")
         return
 
     # try to import as file or directory
     try:
         import_from_disk(module_name)
     except ModuleNotFoundError as error:
-        if hasattr(error, 'name') and error.name is not None and error.name != module_name:
+        if hasattr(error, "name") and error.name is not None and error.name != module_name:
             raise
     else:
-        logger.info(
-            f"Imported module {module_name}"
-        )
+        logger.info(f"Imported module {module_name}")
         return
 
     raise ModuleNotFoundError(f"Could not import {module_name}")
 
 
-def git_clone_module(module_git_url: str):
-    url, rev, user_pass = git_get_url_rev_and_auth(f'git+{module_git_url}')
-    name = url.split('/')[-1].split('.')[0]
+def git_clone_module(module_git_url: str) -> tuple[TemporaryDirectory[str], str]:
+    url, rev, _user_pass = git_get_url_rev_and_auth(f"git+{module_git_url}")
+    name = url.split("/")[-1].split(".")[0]
     alias_name = name
 
-    if rev and ':' in rev:
-        rev, alias_name = rev.split(':', 1)
+    if rev and ":" in rev:
+        rev, alias_name = rev.split(":", 1)
 
-    alias_name = name if alias_name == '' else alias_name
-    rev = None if rev == '' else rev
+    alias_name = name if alias_name == "" else alias_name
+    rev = None if rev == "" else rev
 
     clone_path = TemporaryDirectory(prefix=f"{name}_", dir=TEMP_DIR.name)
     if rev is not None:
         bare_repo = git.Repo.init(clone_path.name, bare=False)
         origin = bare_repo.create_remote("origin", url=url)
-        origin.fetch(
-            refspec=rev,
-            depth=1
-        )
+        origin.fetch(refspec=rev, depth=1)
         bare_repo.git.checkout(rev)
         try:
             ref = bare_repo.head.ref.name
@@ -134,11 +134,7 @@ def git_clone_module(module_git_url: str):
             ref = rev
         commit = bare_repo.head.commit.hexsha
     else:
-        repo = git.Repo.clone_from(
-            url=url,
-            to_path=clone_path.name,
-            depth=1
-        )
+        repo = git.Repo.clone_from(url=url, to_path=clone_path.name, depth=1)
         ref = repo.head.ref.name
         commit = repo.head.commit.hexsha
 
@@ -153,7 +149,7 @@ def git_clone_module(module_git_url: str):
     # try:
     #     import_from_disk(str(import_path))
     #     logger.info(
-    #         f"Imported module {name}{'' if not alias_name else ' at ' + alias_name} from {url} at revision {ref} ({commit})"
+    #         f"Imported module {name} from {url} at revision {ref} ({commit})"
     #     )
     # except ModuleNotFoundError as error:
     #     raise ModuleNotFoundError(f"Could not import {module_git_url}: {error}") from error
@@ -161,8 +157,8 @@ def git_clone_module(module_git_url: str):
     return clone_path, alias_name
 
 
-def load_config(config_loader: ConfigLoader, run_config: str, final: bool = True):
-    if (path := Path(run_config)).is_file() or Path(run_config).with_suffix('.yaml').is_file():
+def load_config(config_loader: ConfigLoader, run_config: str, final: bool = True) -> Any:
+    if (path := Path(run_config)).is_file() or Path(run_config).with_suffix(".yaml").is_file():
         try:
             constructed_run = config_loader.construct_from_file(path, final=final)
         except (FileNotFoundError, MarkedYAMLError, ValidationError) as e:
@@ -175,23 +171,24 @@ def load_config(config_loader: ConfigLoader, run_config: str, final: bool = True
     return constructed_run
 
 
-def replace_alias_name(name: str, cloned_gits: Dict[str, TemporaryDirectory]) -> str:
-    if not name.startswith('@'):
+def replace_alias_name(name: str, cloned_gits: dict[str, TemporaryDirectory]) -> str:
+    if not name.startswith("@"):
         return name
-    name = name.removeprefix('@')
+    name = name.removeprefix("@")
 
     try:
-        alias_name, name = name.split(':', maxsplit=1)
-    except ValueError:
-        raise BadParameter(f"If an alias is used the alias name and the following suffix has to be split by a colon.")
+        alias_name, name = name.split(":", maxsplit=1)
+    except ValueError as exc:
+        raise BadParameter(
+            "If an alias is used the alias name and the following suffix has to be split by a colon."
+        ) from exc
 
-    name = name.removeprefix('/')
+    name = name.removeprefix("/")
     try:
         path_prefix = Path(cloned_gits[alias_name].name)
-    except KeyError:
-        raise BadParameter(f"There is no cloned git for the alias name {alias_name}")
-    name = path_prefix.joinpath(name)
-    return str(name)
+    except KeyError as exc:
+        raise BadParameter(f"There is no cloned git for the alias name {alias_name}") from exc
+    return str(path_prefix.joinpath(name))
 
 
 @click.group()
@@ -206,17 +203,17 @@ def replace_alias_name(name: str, cloned_gits: Dict[str, TemporaryDirectory]) ->
 @click.option("--global-log-level", type=int, default=30)
 @click.pass_context
 def cli(
-        ctx,
-        config_paths: Tuple[Path],
-        config_dirs: Tuple[Path],
-        yaml_strings: Tuple[str],
-        install_packages: Tuple[str],
-        import_modules: Tuple[str],
-        git_clones: Tuple[str],
-        verbose: int,
-        quiet: int,
-        global_log_level: int
-):
+    ctx: Any,
+    config_paths: tuple[Path, ...] | list[Path],
+    config_dirs: tuple[Path, ...] | list[Path],
+    yaml_strings: tuple[str, ...] | list[str],
+    install_packages: tuple[str, ...] | list[str],
+    import_modules: tuple[str, ...] | list[str],
+    git_clones: tuple[str, ...] | list[str],
+    verbose: int,
+    quiet: int,
+    global_log_level: int,
+) -> None:
     ctx.ensure_object(dict)
 
     logging.getLogger().setLevel(global_log_level)
@@ -228,7 +225,7 @@ def cli(
 
     # import modules before creating the loader
     # keep a reference of all temp dirs to prevent them being unlinked
-    cloned_gits: Dict[str, TemporaryDirectory] = {}
+    cloned_gits: dict[str, TemporaryDirectory] = {}
     for module_git_url in git_clones:
         try:
             temp_dir, alias_name = git_clone_module(module_git_url)
@@ -278,19 +275,19 @@ def cli(
 
     logging.getLogger().removeHandler(buffering_log_handler)
 
-    ctx.obj['config_loader'] = config_loader
-    ctx.obj['buffering_log_handler'] = buffering_log_handler
-    ctx.obj['cloned_gits'] = cloned_gits
+    ctx.obj["config_loader"] = config_loader
+    ctx.obj["buffering_log_handler"] = buffering_log_handler
+    ctx.obj["cloned_gits"] = cloned_gits
 
 
 @cli.command()
-@click.argument('run_config', type=str)
+@click.argument("run_config", type=str)
 @click.pass_obj
-def run(ctx_object, run_config: str):
-    config_loader = ctx_object['config_loader']
-    buffering_log_handler = ctx_object['buffering_log_handler']
+def run(ctx_object: Any, run_config: str) -> None:
+    config_loader = ctx_object["config_loader"]
+    buffering_log_handler = ctx_object["buffering_log_handler"]
 
-    run_config = replace_alias_name(run_config, ctx_object['cloned_gits'])
+    run_config = replace_alias_name(run_config, ctx_object["cloned_gits"])
 
     previous_handlers = logging.getLogger().handlers.copy()
 
@@ -298,8 +295,9 @@ def run(ctx_object, run_config: str):
     constructed_run = load_config(config_loader, run_config, final=True)
 
     if not isinstance(constructed_run, ModuleConfig):
-        raise BadParameter(f"The run configuration RUN_CONFIG has to be a mllooper ModuleConfig. "
-                           f"Got {type(constructed_run)} instead.")
+        raise BadParameter(
+            f"The run configuration RUN_CONFIG has to be a mllooper ModuleConfig. Got {type(constructed_run)} instead."
+        )
     loaded_run = constructed_run.load()
 
     new_handlers = [handler for handler in logging.getLogger().handlers if handler not in previous_handlers]
@@ -307,7 +305,9 @@ def run(ctx_object, run_config: str):
     buffering_log_handler.flush()
     buffering_log_handler.close()
 
-    installed_packages = ', '.join(sorted([f"{package.name}=={package.version}" for package in distributions()], key=str.lower))
+    installed_packages = ", ".join(
+        sorted([f"{package.name}=={package.version}" for package in distributions()], key=str.lower)
+    )
     logger.info(f"Installed packages:\n{installed_packages}")
 
     # Log config
@@ -316,12 +316,12 @@ def run(ctx_object, run_config: str):
     YAMLConfigDumper.exclude_unset = False
     YAMLConfigDumper.exclude_defaults = False
     config = yaml.dump(constructed_run, Dumper=YAMLConfigDumper, sort_keys=False)
-    logger.info(ConfigLogMessage(name='full_config', config=config))
+    logger.info(ConfigLogMessage(name="full_config", config=config))
     logger.debug(f"Full Config:\n{config}")
     YAMLConfigDumper.exclude_unset = True
     YAMLConfigDumper.exclude_defaults = True
     config = yaml.dump(constructed_run, Dumper=YAMLConfigDumper, sort_keys=False)
-    logger.info(ConfigLogMessage(name='config', config=config))
+    logger.info(ConfigLogMessage(name="config", config=config))
     YAMLConfigDumper.exclude_unset = original_exclude_unset
     YAMLConfigDumper.exclude_defaults = original_exclude_defaults
 
@@ -332,14 +332,14 @@ def run(ctx_object, run_config: str):
 @click.option("--defaults/--no-defaults", "defaults", is_flag=True, default=True)
 @click.option("--unset/--no-unset", "unset", is_flag=True, default=False)
 @click.option("--final/--no-final", "final", is_flag=True, default=False)
-@click.argument('config', type=str)
+@click.argument("config", type=str)
 @click.pass_obj
-def build(ctx_object, defaults: bool, unset: bool, final: bool, config: str):
-    config_loader: ConfigLoader = ctx_object['config_loader']
-    buffering_log_handler: BufferingLogHandler = ctx_object['buffering_log_handler']
+def build(ctx_object: Any, defaults: bool, unset: bool, final: bool, config: str) -> None:
+    config_loader: ConfigLoader = ctx_object["config_loader"]
+    buffering_log_handler: BufferingLogHandler = ctx_object["buffering_log_handler"]
     buffering_log_handler.close()
 
-    config = replace_alias_name(config, ctx_object['cloned_gits'])
+    config = replace_alias_name(config, ctx_object["cloned_gits"])
     config = load_config(config_loader, config, final=final)
 
     YAMLConfigDumper.exclude_unset = not unset
@@ -348,38 +348,42 @@ def build(ctx_object, defaults: bool, unset: bool, final: bool, config: str):
 
 
 @cli.command()
-@click.argument('tag', type=str)
+@click.argument("tag", type=str)
 @click.option("--definitions/--no-definitions", "definitions", default=False)
 @click.pass_obj
-def explain(ctx_object, tag: str, definitions: bool):
-    config_loader: ConfigLoader = ctx_object['config_loader']
-    buffering_log_handler: BufferingLogHandler = ctx_object['buffering_log_handler']
+def explain(ctx_object: Any, tag: str, definitions: bool) -> None:
+    config_loader: ConfigLoader = ctx_object["config_loader"]
+    buffering_log_handler: BufferingLogHandler = ctx_object["buffering_log_handler"]
     buffering_log_handler.close()
 
     try:
         config = config_loader.yaml_loader.yaml_config_classes[tag]
-    except KeyError:
-        raise BadParameter(f"There is no configuration definition loaded for the tag {tag}. "
-                           f"Make sure that the configuration class is imported.")
+    except KeyError as exc:
+        raise BadParameter(
+            f"There is no configuration definition loaded for the tag {tag}. "
+            f"Make sure that the configuration class is imported."
+        ) from exc
 
-    jschema: str = json.dumps(config.model_json_schema(ref_template='/REPLACE/{model}/REPLACE/'))
+    jschema: str = json.dumps(config.model_json_schema(ref_template="/REPLACE/{model}/REPLACE/"))
 
     for config_tag, config_class in config_loader.yaml_loader.yaml_config_classes.items():
-        jschema = jschema.replace(f'"{config_class.__name__}": {{"title": "{config_class.__name__}"',
-                                  f'"{config_tag}": {{"title": "{config_tag}"')
+        jschema = jschema.replace(
+            f'"{config_class.__name__}": {{"title": "{config_class.__name__}"',
+            f'"{config_tag}": {{"title": "{config_tag}"',
+        )
         jschema = jschema.replace(f'"title": "{config_class.__name__}"', f'"title": "{config_tag}"')
-        jschema = jschema.replace(f'/REPLACE/{config_class.__name__}/REPLACE/', f'#/definitions/{config_tag}')
+        jschema = jschema.replace(f"/REPLACE/{config_class.__name__}/REPLACE/", f"#/definitions/{config_tag}")
 
     # Replace definitions of models which are not configurations
-    jschema = re.sub(r'/REPLACE/(?P<name>.*?)/REPLACE/', r'#/definitions/\g<name>', jschema)
+    jschema = re.sub(r"/REPLACE/(?P<name>.*?)/REPLACE/", r"#/definitions/\g<name>", jschema)
 
     schema = json.loads(jschema)
-    title = schema['title'] if 'description' not in schema else f"{schema['title']}\n{schema['description']}\n"
+    title = schema["title"] if "description" not in schema else f"{schema['title']}\n{schema['description']}\n"
     print(title)
     print(f"\nproperties: {json.dumps(schema['properties'], indent=2)}")
     if definitions:
         print(f"\n\ndefinitions: {json.dumps(schema['definitions'], indent=2)}")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     cli()

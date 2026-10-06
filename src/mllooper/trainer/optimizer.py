@@ -1,17 +1,23 @@
+from __future__ import annotations
+
 from abc import ABC
-from typing import Optional, List, Tuple, Dict
+from typing import Any
 
 from torch.optim import SGD, Adam
+from torch.optim.optimizer import Optimizer
+from typing_extensions import TypeVar
 from yaloader import YAMLBaseConfig, loads
+
+_Optimizer = TypeVar("_Optimizer", bound=Optimizer, default=Any)
 
 
 @loads(None)
-class OptimizerConfig(YAMLBaseConfig, ABC):
-    params: Optional[List[Dict]] = None
+class OptimizerConfig(YAMLBaseConfig[_Optimizer], ABC):
+    params: list[dict] | None = None
 
 
 @loads(SGD)
-class SGDConfig(OptimizerConfig):
+class SGDConfig(OptimizerConfig[SGD]):
     lr: float
     momentum: float = 0
     dampening: float = 0
@@ -20,9 +26,9 @@ class SGDConfig(OptimizerConfig):
 
 
 @loads(Adam)
-class AdamConfig(OptimizerConfig):
+class AdamConfig(OptimizerConfig[Adam]):
     lr: float
-    betas: Tuple[float, float] = (0.9, 0.999)
+    betas: tuple[float, float] = (0.9, 0.999)
     eps: float = 1e-8
     weight_decay: float = 0
     amsgrad: bool = False

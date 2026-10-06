@@ -29,6 +29,7 @@ dependencies = [
     "gitpython",
     "pyyaml",
     "pydantic>=2,<3",
+    "typing-extensions>=4.4.0",
     "yaloader @ git+https://github.com/DominikMa/yaloader.git@master",
     "torch>=2.0",
     "torchvision",
@@ -88,6 +89,15 @@ ignore = ["ANN401"]
 "src/mllooper/__init__.py" = ["I001"]
 "tests/**" = ["ANN"]
 
+[tool.ruff.lint.flake8-type-checking]
+runtime-evaluated-base-classes = [
+    "pydantic.BaseModel",
+    "yaloader.YAMLBaseConfig",
+    "mllooper.ModuleConfig",
+    "mllooper.SeededModuleConfig",
+    "mllooper.state_tests.StateTestConfig",
+]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 markers = ["slow: marks tests as slow to run"]
@@ -108,6 +118,8 @@ unsupported-base = "ignore"
 [tool.pyright]
 pythonVersion = "3.10"
 typeCheckingMode = "basic"
+venvPath = "."
+venv = ".venv"
 
 [dependency-groups]
 # CPU development: uv sync --no-group gpu --group cpu

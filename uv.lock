@@ -1989,6 +1989,7 @@ dependencies = [
     { name = "torch", version = "2.14.1+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "(sys_platform != 'darwin' and extra == 'group-8-mllooper-cpu') or (extra == 'group-8-mllooper-cpu' and extra == 'group-8-mllooper-gpu')" },
     { name = "torchvision", version = "0.29.1", source = { registry = "https://pypi.org/simple" }, marker = "sys_platform == 'darwin' or extra != 'group-8-mllooper-cpu' or (extra == 'group-8-mllooper-cpu' and extra == 'group-8-mllooper-gpu')" },
     { name = "torchvision", version = "0.29.1+cpu", source = { registry = "https://download.pytorch.org/whl/cpu" }, marker = "(sys_platform != 'darwin' and extra == 'group-8-mllooper-cpu') or (extra == 'group-8-mllooper-cpu' and extra == 'group-8-mllooper-gpu')" },
+    { name = "typing-extensions" },
     { name = "yaloader" },
 ]
 
@@ -2049,6 +2050,7 @@ requires-dist = [
     { name = "tensorboard" },
     { name = "torch", specifier = ">=2.0" },
     { name = "torchvision" },
+    { name = "typing-extensions", specifier = ">=4.4.0" },
     { name = "yaloader", git = "https://github.com/DominikMa/yaloader.git?rev=master" },
 ]
 provides-extras = ["docs"]
@@ -4309,10 +4311,11 @@ wheels = [
 [[package]]
 name = "yaloader"
 version = "0.0.3"
-source = { git = "https://github.com/DominikMa/yaloader.git?rev=master#a2dd28803fc48b924c7c8d27c02f76016d6cd897" }
+source = { git = "https://github.com/DominikMa/yaloader.git?rev=master#2634f3a6b4ca8a41c79757a0a034f6f73cb8179b" }
 dependencies = [
     { name = "pydantic" },
     { name = "pyyaml" },
+    { name = "typing-extensions" },
 ]
 
 [[package]]
