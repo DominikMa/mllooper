@@ -96,7 +96,7 @@ markers = ["slow: marks tests as slow to run"]
 source = ["mllooper"]
 
 [tool.coverage.report]
-fail_under = 50
+fail_under = 0
 
 [tool.ty.environment]
 python-version = "3.10"

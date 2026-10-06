@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+cd "$(git rev-parse --show-toplevel)"
+
+run_check() {
+    printf '\nRunning %s\n' "$*"
+    uv run --locked --no-group gpu --group cpu "$@"
+}
+
+run_check ruff check src/ tests/
+run_check ruff format --check src/ tests/
+run_check ty check src/
+run_check pyright src/
+run_check pytest -q
