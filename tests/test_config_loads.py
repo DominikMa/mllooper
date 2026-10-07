@@ -99,6 +99,20 @@ next_dataset_tests:
     assert dataset_loader.next_dataset_tests[0].iterations == 3
 
 
+@pytest.mark.parametrize("option,expected", [("", True), ("non_blocking: true", True), ("non_blocking: false", False)])
+def test_dataset_non_blocking_yaml_round_trip(option, expected):
+    loader = ConfigLoader()
+    config = loader.construct_from_string(
+        f"!AlwaysClassZeroDataset\npartition: train\npartitions:\n  train: {{size: 1.0}}\nnr_samples: 2\n{option}\n"
+    )
+    restored = loader.construct_from_string(yaml.dump(config, Dumper=YAMLConfigDumper))
+
+    assert restored.non_blocking is expected
+    dataset = restored.load()
+    assert isinstance(dataset, AlwaysClassZeroDataset)
+    assert dataset.non_blocking is expected
+
+
 def test_nested_metric_configs_yaml_round_trip():
     loader = ConfigLoader()
     config = loader.construct_from_string(
