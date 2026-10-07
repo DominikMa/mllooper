@@ -58,6 +58,7 @@ class Dataset(SeededModule, TorchDataset[Any], ABC):
         dataset_type: str | None = None,
         device: str = "cpu",
         state_name_dataset: str = "dataset_state",
+        non_blocking: bool = True,
         **kwargs: Any,
     ) -> None:
         self.type = dataset_type
@@ -68,6 +69,7 @@ class Dataset(SeededModule, TorchDataset[Any], ABC):
 
         self.train = train
         self.device = torch.device(device)
+        self.non_blocking = non_blocking
 
         self.data_loader_args = data_loader_args if data_loader_args is not None else DataLoaderArgs()
 
@@ -150,7 +152,7 @@ class Dataset(SeededModule, TorchDataset[Any], ABC):
         self, data: torch.Tensor | dict[str, torch.Tensor]
     ) -> torch.Tensor | dict[str, torch.Tensor]:
         if isinstance(data, torch.Tensor):
-            return data.to(self.device)
+            return data.to(self.device, non_blocking=self.non_blocking)
         elif isinstance(data, dict):
             for key, value in data.items():
                 if not isinstance(value, torch.Tensor):
@@ -161,7 +163,7 @@ class Dataset(SeededModule, TorchDataset[Any], ABC):
                         )
                         _LOGGED_NON_TENSOR_TYPES_GPU.add(type(value))
                     continue
-                data[key] = value.to(self.device)
+                data[key] = value.to(self.device, non_blocking=self.non_blocking)
             return data
         else:
             raise ValueError(f"Expected a tensor or a dict of tensors as data but got {type(data)}.")
@@ -180,6 +182,7 @@ class Dataset(SeededModule, TorchDataset[Any], ABC):
             train=self.train,
             type=self.type,
             device=str(self.device),
+            non_blocking=self.non_blocking,
             data_loader_args=self.data_loader_args.model_dump(),
             state=self.state,
         )
@@ -189,6 +192,7 @@ class Dataset(SeededModule, TorchDataset[Any], ABC):
         train = state_dict.pop("train")
         dataset_type = state_dict.pop("type")
         device = state_dict.pop("device")
+        non_blocking = state_dict.pop("non_blocking", self.non_blocking)
         data_loader_args = state_dict.pop("data_loader_args")
         state = state_dict.pop("state")
 
@@ -197,6 +201,7 @@ class Dataset(SeededModule, TorchDataset[Any], ABC):
         self.train = train
         self.type = dataset_type
         self.device = torch.device(device)
+        self.non_blocking = non_blocking
         self.data_loader_args = DataLoaderArgs(**data_loader_args)
         # TODO
         # self.data_loader = self.get_torch_data_loader()
@@ -212,6 +217,7 @@ class DatasetConfig(SeededModuleConfig[_Dataset], ABC):
     data_loader_args: DataLoaderArgs = Field(default_factory=DataLoaderArgs)
     dataset_type: str | None = None
     device: str = "cpu"
+    non_blocking: bool = Field(default=True, description="Attempt asynchronous batch transfers to the device.")
     state_name_dataset: str = "dataset_state"
 
 
