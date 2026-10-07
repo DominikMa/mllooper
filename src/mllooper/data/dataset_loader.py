@@ -59,13 +59,11 @@ class DatasetLoader(SeededModule):
             if (
                 self.state.next_dataset
                 or self._consecutive_same_dataset_stop_iteration_counter > 1
-                or (
-                    # Run next dataset tests only on first try of getting data
-                    self._consecutive_same_dataset_stop_iteration_counter == 0
-                    and any(map(lambda test: test(state), self.next_dataset_tests))
-                )
+                or any(map(lambda test: test(state), self.next_dataset_tests))
             ):
                 self.current_dataset = next(self.dataset_generator)
+                # A retry after exhaustion must test the newly selected dataset's state.
+                setattr(state, self.current_dataset.state_name_dataset, self.current_dataset.state)
                 self.state.next_dataset = False
                 self._consecutive_same_dataset_stop_iteration_counter = 0
 
@@ -88,6 +86,7 @@ class DatasetLoader(SeededModule):
                     raise StopRun
 
             try:
+                self.current_dataset.initialise_torch_data_loader()
                 self.current_dataset.step(state)
                 self._consecutive_stop_iteration_counter = 0
                 self._consecutive_same_dataset_stop_iteration_counter = 0
@@ -115,9 +114,9 @@ class DatasetLoader(SeededModule):
             self.state.epoch += 1
             self.logger.debug(f"Start epoch {self.state.epoch}")
             for dataset in self.datasets.values():
-                dataset.state.iteration = 0
-                dataset.state.epoch = 0
                 dataset.initialise_torch_data_loader()
+                dataset.state.epoch = 1
+                dataset.state.iteration = 0
                 self.logger.debug(
                     f"Load dataset {dataset.name} "
                     f"(Total epoch {dataset.state.total_epoch}, "
