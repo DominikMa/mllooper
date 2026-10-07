@@ -2051,7 +2051,7 @@ requires-dist = [
     { name = "torch", specifier = ">=2.0" },
     { name = "torchvision" },
     { name = "typing-extensions", specifier = ">=4.4.0" },
-    { name = "yaloader", git = "https://github.com/DominikMa/yaloader.git?rev=master" },
+    { name = "yaloader", git = "ssh://git@github.com/DominikMa/yaloader" },
 ]
 provides-extras = ["docs"]
 
@@ -4311,7 +4311,7 @@ wheels = [
 [[package]]
 name = "yaloader"
 version = "0.0.3"
-source = { git = "https://github.com/DominikMa/yaloader.git?rev=master#2634f3a6b4ca8a41c79757a0a034f6f73cb8179b" }
+source = { git = "ssh://git@github.com/DominikMa/yaloader#2634f3a6b4ca8a41c79757a0a034f6f73cb8179b" }
 dependencies = [
     { name = "pydantic" },
     { name = "pyyaml" },

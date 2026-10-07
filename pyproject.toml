@@ -30,7 +30,7 @@ dependencies = [
     "pyyaml",
     "pydantic>=2,<3",
     "typing-extensions>=4.4.0",
-    "yaloader @ git+https://github.com/DominikMa/yaloader.git@master",
+    "yaloader",
     "torch>=2.0",
     "torchvision",
     "tensorboard",
@@ -61,6 +61,7 @@ default-groups = ["dev", "gpu"]
 conflicts = [[{ group = "cpu" }, { group = "gpu" }]]
 
 [tool.uv.sources]
+yaloader = { git = "ssh://git@github.com/DominikMa/yaloader" }
 torch = [
     { index = "pytorch-cpu", group = "cpu", marker = "sys_platform != 'darwin'" },
 ]
