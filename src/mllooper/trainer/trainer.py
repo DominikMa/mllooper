@@ -115,14 +115,17 @@ class TrainerConfig(ModuleConfig[Trainer]):
 
 
 class PrecisionAutoCast(Module):
-    def __init__(self, device_type: str, **kwargs: Any) -> None:
+    """Autocast with an optional dtype; None keeps PyTorch's device default."""
+
+    def __init__(self, device_type: str, dtype: Literal["float16", "bfloat16"] | None = None, **kwargs: Any) -> None:
         super().__init__(**kwargs)
 
         self._init_count = 0
         self.initialised = False
         self.current_sub_step = 0
 
-        self.autocast = torch.autocast(device_type=device_type)
+        torch_dtype = {"float16": torch.float16, "bfloat16": torch.bfloat16}[dtype] if dtype is not None else None
+        self.autocast = torch.autocast(device_type=device_type, dtype=torch_dtype)
 
     def initialise(self, modules: dict[str, Module]) -> None:
         self._init_count += 1
@@ -147,3 +150,4 @@ class PrecisionAutoCast(Module):
 @loads(PrecisionAutoCast)
 class PrecisionAutoCastConfig(ModuleConfig[PrecisionAutoCast]):
     device_type: Literal["cuda", "cpu", "xpu"]
+    dtype: Literal["float16", "bfloat16"] | None = None
